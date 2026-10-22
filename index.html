@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>נוכחות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --soft:#f3faff; --sky:#e3f3fd; --line:#e4eef6;
+  --blue:#2aa7e8; --blue-d:#1287c7; --ink:#12304a; --mute:#7b93a6; --danger:#e25c5c;
+  --r:18px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif}
+body{min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,select{font:inherit;color:var(--ink)}
+header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
+header h1 span{color:var(--blue)}
+.hbtns{display:flex;gap:6px}
+.ib{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--mute)}
+.ib:active{background:var(--sky)}
+.ib.on{color:var(--blue);background:var(--sky)}
+.ib svg{width:22px;height:22px}
+main{max-width:720px;margin:0 auto;padding:16px}
+.view{display:none}.view.act{display:block}
+
+/* capture */
+.hero{background:var(--soft);border:1px solid var(--line);border-radius:24px;padding:28px 18px;text-align:center}
+.hero .circ{width:72px;height:72px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 12px;color:var(--blue)}
+.hero .circ svg{width:34px;height:34px}
+.hero p{margin:0 0 18px;color:var(--mute);font-size:14px}
+.row2{display:flex;gap:10px;justify-content:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 20px;border-radius:14px;font-weight:500;font-size:15px}
+.btn.pri{background:var(--blue);color:#fff}
+.btn.pri:active{background:var(--blue-d)}
+.btn.sec{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn.ghost{color:var(--blue)}
+.btn.dan{color:var(--danger)}
+.btn.full{width:100%}
+.btn svg{width:18px;height:18px}
+.status{text-align:center;color:var(--mute);font-size:13px;min-height:20px;margin:12px 0}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--sky);border-top-color:var(--blue);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-2px;margin-left:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;margin:22px 2px 12px}
+.sechead h2{margin:0;font-size:17px;font-weight:500}
+.sechead small{color:var(--mute);font-size:13px}
+.chips{display:flex;gap:6px;margin:-4px 2px 14px;flex-wrap:wrap}
+.chip{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--sky);color:var(--blue-d)}
+.chip.o{background:#fff;border:1px dashed #b9daef;color:var(--mute)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:12px}
+.tile{display:block;text-align:center;padding:0}
+.tile .ph{position:relative;aspect-ratio:35/45;border-radius:14px;overflow:hidden;background:var(--soft);border:1px solid var(--line)}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tile .nm{display:block;font-size:13px;margin-top:6px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .ln{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.known .ph::after{content:"";position:absolute;top:7px;left:7px;width:10px;height:10px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 2px #fff}
+.tile.unk .ph{border:2px dashed #9fd2f0}
+.tile.unk .nm{color:var(--blue);font-weight:500}
+.tile.skip{opacity:.35}
+
+/* people */
+.search{width:100%;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--soft);padding:0 14px;outline:none}
+.search:focus{border-color:var(--blue);background:#fff}
+.empty{text-align:center;color:var(--mute);padding:40px 10px;font-size:14px}
+
+/* attendance */
+.day{margin-bottom:18px}
+.day h3{font-size:13px;font-weight:500;color:var(--mute);margin:0 4px 8px}
+.ses{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-bottom:8px;text-align:right}
+.ses:active{background:var(--soft)}
+.ses .t{font-weight:500;font-size:16px;min-width:50px}
+.ses .c{font-size:13px;color:var(--mute)}
+.avs{display:flex;margin-inline-start:auto;flex-direction:row-reverse}
+.avs img,.avs span{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #fff;margin-inline-start:-8px;background:var(--sky)}
+.avs span{display:grid;place-items:center;font-size:11px;color:var(--blue-d)}
+
+/* sheet */
+.back{position:fixed;inset:0;background:rgba(18,48,74,.28);opacity:0;pointer-events:none;transition:.2s;z-index:20}
+.back.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:#fff;border-radius:26px 26px 0 0;max-height:92vh;overflow:auto;
+  transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding:10px 18px calc(24px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+.sheet.on{transform:none}
+.grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.pp{display:block;width:150px;aspect-ratio:35/45;object-fit:cover;border-radius:18px;margin:4px auto 12px;border:1px solid var(--line)}
+.sheet h2{text-align:center;margin:0;font-size:22px;font-weight:500}
+.meta{text-align:center;color:var(--mute);font-size:13px;margin:4px 0 16px}
+.fl{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.fr{display:flex;align-items:center;gap:10px;padding:0 14px;min-height:50px;border-bottom:1px solid var(--line)}
+.fr:last-child{border-bottom:0}
+.fr label{color:var(--mute);font-size:13px;width:92px;flex:none}
+.fr .v{flex:1;font-size:15px}
+.fr input{flex:1;border:0;outline:0;height:48px;background:transparent;font-size:15px;min-width:0}
+.fr input:focus{color:var(--blue-d)}
+.fr .x{color:var(--mute);width:28px;height:28px;border-radius:8px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.acts .btn{flex:1}
+.sub{font-size:14px;font-weight:500;margin:20px 2px 8px;display:flex;justify-content:space-between;align-items:center}
+.sub small{font-weight:400;color:var(--mute)}
+.list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.li{display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid var(--line);width:100%;text-align:right}
+.li:last-child{border-bottom:0}
+.li img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--sky)}
+.li .n{flex:1;font-size:15px}
+.li .d{color:var(--mute);font-size:13px}
+.li .a{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--mute)}
+.li .a.add{color:var(--blue)}
+.li .a svg{width:18px;height:18px}
+.li.off img{filter:grayscale(1);opacity:.6}
+.li.off .n{color:var(--mute)}
+.sel{width:100%;height:46px;border:1px solid var(--line);border-radius:14px;padding:0 12px;background:var(--soft);margin-bottom:8px}
+.dt{width:100%;height:46px;border:1px solid var(--blue);border-radius:14px;padding:0 12px;margin:6px 0}
+.or{display:flex;align-items:center;gap:10px;color:var(--mute);font-size:12px;margin:18px 0 10px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* dialog */
+.dlg{position:fixed;inset:0;z-index:40;display:none;place-items:center;background:rgba(18,48,74,.32);padding:20px}
+.dlg.on{display:grid}
+.dlgb{background:#fff;border-radius:24px;padding:22px 20px 16px;width:100%;max-width:330px;text-align:center}
+.dlgb h4{margin:0 0 4px;font-size:17px;font-weight:500}
+.dlgb p{margin:0 0 14px;color:var(--mute);font-size:13px}
+.dlgb input{width:100%;height:50px;border-radius:14px;border:1px solid var(--line);background:var(--soft);text-align:center;font-size:20px;outline:0;letter-spacing:4px}
+.dlgb input.txt{letter-spacing:0;font-size:16px}
+.dlgb input:focus{border-color:var(--blue);background:#fff}
+.dlgb .acts{margin-top:14px}
+.shake{animation:sh .35s}
+@keyframes sh{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+/* nav */
+nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+nav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mute);padding:6px 18px;border-radius:14px}
+nav button svg{width:24px;height:24px}
+nav button.act{color:var(--blue)}
+.toast{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+  padding:10px 18px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>נוכח<span>ות</span></h1>
+  <div class="hbtns">
+    <button class="ib" id="lockBtn" aria-label="נעילה"></button>
+    <button class="ib" id="setBtn" aria-label="הגדרות"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <section class="view act" id="v-cap">
+    <div class="hero">
+      <div class="circ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+      <p>צלמו את הקבוצה — המערכת תזהה כל פרצוף<br>ותרשום נוכחות לפי זמן הצילום</p>
+      <div class="row2">
+        <label class="btn pri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>צילום<input type="file" accept="image/*" capture="environment" class="hide" id="fCam"></label>
+        <label class="btn sec">מהגלריה<input type="file" accept="image/*" class="hide" id="fGal"></label>
+      </div>
+    </div>
+    <div class="status" id="status"></div>
+    <div id="result"></div>
+  </section>
+
+  <section class="view" id="v-ppl">
+    <input class="search" id="q" placeholder="חיפוש לפי שם…">
+    <div class="sechead"><h2>אנשים</h2><small id="pplCount"></small></div>
+    <div class="grid" id="pplGrid"></div>
+  </section>
+
+  <section class="view" id="v-att">
+    <div class="sechead" style="margin-top:4px"><h2>נוכחות</h2><button class="btn ghost" style="height:32px;padding:0 6px" id="csvBtn">ייצוא לאקסל</button></div>
+    <div id="attList"></div>
+  </section>
+</main>
+
+<nav>
+  <button data-v="v-cap" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="4"/></svg>צילום</button>
+  <button data-v="v-ppl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 2 5 4.9"/></svg>אנשים</button>
+  <button data-v="v-att"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8.5 14.5l2 2 4-4"/></svg>נוכחות</button>
+</nav>
+
+<div class="back" id="back"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+
+<div class="dlg" id="dlg"><div class="dlgb" id="dlgb">
+  <h4 id="dlgT"></h4><p id="dlgP"></p>
+  <input id="dlgI">
+  <div class="acts"><button class="btn sec" id="dlgNo">ביטול</button><button class="btn pri" id="dlgOk">אישור</button></div>
+</div></div>
+
+<input type="file" accept="application/json" class="hide" id="fImp">
+<div class="toast" id="toast"></div>
+
+<script>
+const MODEL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+const THRESH=0.5;          // מרחק מקסימלי לזיהוי אדם קיים (נמוך = מחמיר)
+const LOCK_MS=5*60*1000;   // נעילה אוטומטית אחרי 5 דקות
+
+const $=s=>document.querySelector(s);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fullName=p=>[p.first,p.last].filter(Boolean).join(' ')||'ללא שם';
+const fDate=ts=>new Date(ts).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'numeric',year:'numeric'});
+const fShort=ts=>new Date(ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'});
+const fTime=ts=>new Date(ts).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+const dayKey=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const toLocalInput=ts=>{const d=new Date(ts);return new Date(ts-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
+
+/* ---------- storage (IndexedDB) ---------- */
+let S={people:[],fields:[],sessions:[],code:'1234'};
+const idb={db:null,
+  open(){return new Promise((res,rej)=>{const r=indexedDB.open('nochechut',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.db=r.result;res()};r.onerror=()=>rej(r.error)})},
+  get(k){return new Promise(res=>{const q=this.db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(undefined)})},
+  set(k,v){return new Promise((res,rej)=>{const tx=this.db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}
+};
+async function save(){try{await idb.set('state',S)}catch(e){toast('שגיאה בשמירה')}}
+const P=id=>S.people.find(p=>p.id===id);
+const SES=id=>S.sessions.find(s=>s.id===id);
+
+/* ---------- ui helpers ---------- */
+let tT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('on'),2200)}
+function setStatus(h){$('#status').innerHTML=h}
+let sheetOnClose=null;
+function openSheet(html,onClose){$('#sheetBody').innerHTML=html;$('#sheet').scrollTop=0;$('#back').classList.add('on');$('#sheet').classList.add('on');sheetOnClose=onClose||null}
+function closeSheet(){$('#back').classList.remove('on');$('#sheet').classList.remove('on');const f=sheetOnClose;sheetOnClose=null;if(f)f()}
+$('#back').onclick=closeSheet;
+
+/* dialog: code / text */
+function dialog({title,text='',type='text',value='',placeholder='',check}){
+  return new Promise(res=>{
+    const d=$('#dlg'),i=$('#dlgI'),b=$('#dlgb');
+    $('#dlgT').textContent=title;$('#dlgP').textContent=text;
+    i.type=type==='code'?'password':'text';i.inputMode=type==='code'?'numeric':'text';
+    i.className=type==='code'?'':'txt';i.value=value;i.placeholder=placeholder;
+    d.classList.add('on');setTimeout(()=>i.focus(),60);
+    const done=v=>{d.classList.remove('on');i.oninput=i.onkeydown=null;$('#dlgOk').onclick=$('#dlgNo').onclick=null;res(v)};
+    const ok=()=>{const v=i.value.trim();if(check&&!check(v)){b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');i.value='';return}done(v)};
+    $('#dlgOk').onclick=ok;$('#dlgNo').onclick=()=>done(null);
+    i.onkeydown=e=>{if(e.key==='Enter')ok()};
+    i.oninput=()=>{if(type==='code'&&i.value.length>=S.code.length)ok()};
+  });
+}
+
+/* ---------- lock ---------- */
+let unlocked=false,lockT;
+const ICON_LOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>';
+const ICON_OPEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 7.6-1.7"/></svg>';
+function paintLock(){const b=$('#lockBtn');b.innerHTML=unlocked?ICON_OPEN:ICON_LOCK;b.classList.toggle('on',unlocked)}
+function touchLock(){clearTimeout(lockT);lockT=setTimeout(lock,LOCK_MS)}
+function lock(){unlocked=false;clearTimeout(lockT);paintLock()}
+async function withCode(fn){
+  if(unlocked){touchLock();return fn()}
+  const v=await dialog({title:'הזינו קוד',text:'שינויים מוגנים בקוד',type:'code',check:v=>v===S.code});
+  if(v===null)return;unlocked=true;paintLock();touchLock();return fn();
+}
+$('#lockBtn').onclick=()=>{if(unlocked){lock();toast('ננעל')}else withCode(()=>toast('פתוח לעריכה'))};
+
+/* ---------- face engine ---------- */
+let modelsReady;
+function loadModels(){
+  modelsReady=(async()=>{
+    if(typeof faceapi==='undefined')throw new Error('lib');
+    setStatus('טוען מנוע זיהוי<span class="spin"></span>');
+    try{await faceapi.tf.setBackend('webgl')}catch(e){}
+    await faceapi.tf.ready();
+    await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
+    setStatus('');
+  })();
+  modelsReady.catch(()=>setStatus('לא ניתן לטעון את מנוע הזיהוי — בדקו חיבור לאינטרנט'));
+}
+function dist(a,b){let s=0;for(let i=0;i<128;i++){const d=a[i]-b[i];s+=d*d}return Math.sqrt(s)}
+function minDist(desc,p){let m=9;for(const d of p.descriptors){const x=dist(desc,d);if(x<m)m=x}return m}
+function learn(p,desc,d){ // שומר דוגמאות מגוונות כדי לשפר זיהוי עם הזמן
+  if(d!==undefined&&d<0.25)return;
+  p.descriptors.push(desc);
+  if(p.descriptors.length>12)p.descriptors.splice(1,1);
+}
+function fileToCanvas(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{const k=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');
+    c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c)};
+  im.onerror=()=>{URL.revokeObjectURL(u);rej()};im.src=u})}
+function passport(src,b){ // חיתוך ביחס פספורט 35x45
+  const cx=b.x+b.width/2,cy=b.y+b.height/2,w=b.width*1.75,h=w*45/35;
+  const o=document.createElement('canvas');o.width=280;o.height=360;const g=o.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,280,360);g.drawImage(src,cx-w/2,cy-h*.47,w,h,0,0,280,360);
+  return o.toDataURL('image/jpeg',.86);
+}
+
+/* ---------- capture ---------- */
+let cur=null; // {sid, faces:[{crop,desc,pid,skip}]}
+async function handleFile(file){
+  if(!file)return;
+  purgeEmpty();
+  $('#result').innerHTML='';
+  setStatus('מזהה פרצופים<span class="spin"></span>');
+  try{await modelsReady}catch(e){return}
+  let c;try{c=await fileToCanvas(file)}catch(e){setStatus('');toast('לא ניתן לפתוח את התמונה');return}
+  setStatus('מזהה פרצופים<span class="spin"></span>');
+  await new Promise(r=>setTimeout(r,30));
+  const dets=await faceapi.detectAllFaces(c,new faceapi.SsdMobilenetv1Options({minConfidence:.45,maxResults:150})).withFaceLandmarks().withFaceDescriptors();
+  setStatus('');
+  if(!dets.length){toast('לא נמצאו פרצופים בתמונה');return}
+  dets.sort((a,b)=>b.detection.box.x-a.detection.box.x); // מימין לשמאל
+  const faces=dets.map(d=>({crop:passport(c,d.detection.box),desc:Array.from(d.descriptor),pid:null,d:9,skip:false}));
+  // התאמה ייחודית: כל אדם לפרצוף אחד לכל היותר
+  const cand=[];faces.forEach((f,i)=>S.people.forEach(p=>{const d=minDist(f.desc,p);if(d<THRESH)cand.push({i,p,d})}));
+  cand.sort((a,b)=>a.d-b.d);const uf=new Set(),up=new Set();
+  for(const x of cand){if(uf.has(x.i)||up.has(x.p.id))continue;uf.add(x.i);up.add(x.p.id);faces[x.i].pid=x.p.id;faces[x.i].d=x.d}
+  const ts=(file.lastModified&&file.lastModified<=Date.now()+60000)?file.lastModified:Date.now();
+  const ses={id:uid(),ts,present:[]};
+  faces.forEach(f=>{if(f.pid){ses.present.push(f.pid);learn(P(f.pid),f.desc,f.d)}});
+  S.sessions.push(ses);await save();
+  cur={sid:ses.id,faces};renderCapture();renderAtt();renderPeople();
+}
+['#fCam','#fGal'].forEach(s=>$(s).onchange=e=>{const f=e.target.files[0];e.target.value='';handleFile(f)});
+
+function renderCapture(){
+  const r=$('#result');if(!cur){r.innerHTML='';return}
+  const ses=SES(cur.sid);if(!ses){cur=null;r.innerHTML='';return}
+  const known=cur.faces.filter(f=>f.pid).length,unk=cur.faces.filter(f=>!f.pid&&!f.skip).length;
+  r.innerHTML=`<div class="sechead"><h2>${fDate(ses.ts)}</h2><small>${fTime(ses.ts)}</small></div>
+  <div class="chips"><span class="chip">${known} נוכחים</span>${unk?`<span class="chip o">${unk} לא מזוהים — הקישו כדי לתת שם</span>`:''}</div>
+  <div class="grid">${cur.faces.map((f,i)=>{const p=f.pid&&P(f.pid);
+    return `<button class="tile ${p?'known':f.skip?'skip':'unk'}" data-i="${i}"><div class="ph"><img src="${f.crop}"></div>
+    <span class="nm">${p?esc(p.first||fullName(p)):f.skip?'דולג':'מי זה?'}</span>${p&&p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`}).join('')}</div>
+  <div style="margin-top:22px"><button class="btn sec full" id="doneBtn">סיום</button></div>`;
+  r.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{const f=cur.faces[+t.dataset.i];if(f.pid)personSheet(f.pid);else nameSheet(+t.dataset.i)});
+  $('#doneBtn').onclick=()=>{purgeEmpty();cur=null;renderCapture();toast('הנוכחות נשמרה')};
+}
+function purgeEmpty(){const n=S.sessions.length;S.sessions=S.sessions.filter(s=>s.present.length||(cur&&s.id===cur.sid&&cur.faces.some(f=>!f.pid&&!f.skip)));if(S.sessions.length!==n){save();renderAtt()}}
+
+function fieldInputs(vals={}){
+  return `<div class="fl" id="ff">
+    <div class="fr"><label>שם פרטי</label><input data-k="first" value="${esc(vals.first)}" autocomplete="off"></div>
+    <div class="fr"><label>שם משפחה</label><input data-k="last" value="${esc(vals.last)}" autocomplete="off"></div>
+    ${S.fields.map(f=>`<div class="fr"><label>${esc(f)}</label><input data-f="${esc(f)}" value="${esc((vals.extra||{})[f])}" autocomplete="off"></div>`).join('')}
+  </div>`;
+}
+function readInputs(){const o={first:'',last:'',extra:{}};$('#ff').querySelectorAll('input').forEach(i=>{if(i.dataset.k)o[i.dataset.k]=i.value.trim();else o.extra[i.dataset.f]=i.value.trim()});return o}
+async function addField(){const n=await dialog({title:'שדה חדש',text:'השדה יופיע בכרטיס של כולם',placeholder:'למשל: טלפון, חגורה, הערות'});
+  if(!n)return false;if(['שם פרטי','שם משפחה'].includes(n)||S.fields.includes(n)){toast('השדה כבר קיים');return false}
+  S.fields.push(n);await save();return true}
+
+function nameSheet(i){
+  const f=cur.faces[i],ses=SES(cur.sid);
+  const others=S.people.filter(p=>!ses.present.includes(p.id)).sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
+  const draw=(vals)=>{
+    openSheet(`<img class="pp" src="${f.crop}"><h2>מי זה?</h2><div class="meta">אדם חדש</div>
+      ${fieldInputs(vals)}
+      <div class="acts"><button class="btn ghost" id="af">+ הוסף שדה</button></div>
+      <button class="btn pri full" id="sv">שמירה</button>
+      ${others.length?`<div class="or">או שזה מישהו שכבר קיים</div>
+      <select class="sel" id="ex"><option value="">בחרו מהרשימה…</option>${others.map(p=>`<option value="${p.id}">${esc(fullName(p))}</option>`).join('')}</select>
+      <button class="btn sec full" id="asg">שיוך</button>`:''}
+      <div class="acts" style="margin-top:14px"><button class="btn dan" id="sk">${f.skip?'בטל דילוג':'דלג על הפרצוף הזה'}</button></div>`);
+    setTimeout(()=>{const fi=$('#ff input');if(fi&&!vals)fi.focus()},300);
+    $('#af').onclick=async()=>{const v=readInputs();if(await addField())draw(v)};
+    $('#sv').onclick=async()=>{const v=readInputs();if(!v.first&&!v.last){toast('הזינו שם');return}
+      const p={id:uid(),first:v.first,last:v.last,extra:v.extra,photo:f.crop,descriptors:[f.desc],created:Date.now()};
+      S.people.push(p);ses.present.push(p.id);f.pid=p.id;f.skip=false;await save();closeSheet();renderCapture();renderPeople();renderAtt();toast('נשמר ✓')};
+    if($('#asg'))$('#asg').onclick=async()=>{const id=$('#ex').value;if(!id)return;const p=P(id);
+      learn(p,f.desc);ses.present.push(id);f.pid=id;f.skip=false;await save();closeSheet();renderCapture();renderAtt();toast('שויך ל'+fullName(p))};
+    $('#sk').onclick=()=>{f.skip=!f.skip;closeSheet();renderCapture()};
+  };
+  draw();
+}
+
+/* ---------- person card ---------- */
+function personSheet(id,edit=false){
+  const p=P(id);if(!p)return;
+  const att=S.sessions.filter(s=>s.present.includes(id)).sort((a,b)=>b.ts-a.ts);
+  const rows=[['שם פרטי',p.first],['שם משפחה',p.last],...S.fields.map(f=>[f,(p.extra||{})[f]])];
+  openSheet(`<img class="pp" src="${p.photo}"><h2>${esc(fullName(p))}</h2>
+    <div class="meta">${att.length} נוכחויות${att.length?' · אחרונה '+fShort(att[0].ts):''}</div>
+    ${edit?fieldInputs(p):`<div class="fl">${rows.map(([l,v])=>`<div class="fr"><label>${esc(l)}</label><div class="v">${esc(v)||'<span style="color:#c3d3df">—</span>'}</div></div>`).join('')}</div>`}
+    <div class="acts">${edit
+      ?`<button class="btn ghost" id="af">+ הוסף שדה</button><button class="btn pri" id="sv">שמירה</button>`
+      :`<button class="btn sec" id="ed">עריכה</button><button class="btn ghost" id="af">+ הוסף שדה</button>`}</div>
+    <div class="sub">נוכחות <small>${att.length}</small></div>
+    ${att.length?`<div class="list">${att.map(s=>`<button class="li" data-s="${s.id}"><span class="n">${fDate(s.ts)}</span><span class="d">${fTime(s.ts)}</span></button>`).join('')}</div>`:'<div class="empty" style="padding:16px">אין עדיין נוכחות</div>'}
+    ${edit?`<div class="acts" style="margin-top:18px"><button class="btn dan" id="del">מחיקת האדם</button></div>`:''}`);
+  $('#af').onclick=()=>withCode(async()=>{const v=edit?readInputs():null;if(await addField()){if(v)Object.assign(p,{first:v.first,last:v.last,extra:{...p.extra,...v.extra}});personSheet(id,true)}});
+  if($('#ed'))$('#ed').onclick=()=>withCode(()=>personSheet(id,true));
+  if($('#sv'))$('#sv').onclick=()=>withCode(async()=>{const v=readInputs();p.first=v.first;p.last=v.last;p.extra={...p.extra,...v.extra};await save();renderAll();personSheet(id);toast('עודכן ✓')});
+  if($('#del'))$('#del').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק את '+fullName(p)+'?',text:'כולל כל הנוכחות שלו. הקלידו "מחק" לאישור',check:v=>v==='מחק'});
+    if(ok===null)return;S.people=S.people.filter(x=>x.id!==id);S.sessions.forEach(s=>s.present=s.present.filter(x=>x!==id));
+    if(cur)cur.faces.forEach(f=>{if(f.pid===id)f.pid=null});await save();closeSheet();renderAll();toast('נמחק')});
+  document.querySelectorAll('#sheetBody .li[data-s]').forEach(b=>b.onclick=()=>sessionSheet(b.dataset.s));
+}
+
+/* ---------- people ---------- */
+function renderPeople(){
+  const q=$('#q').value.trim().toLowerCase();
+  const list=S.people.filter(p=>!q||[fullName(p),...Object.values(p.extra||{})].join(' ').toLowerCase().includes(q))
+    .sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
+  $('#pplCount').textContent=S.people.length?S.people.length+' רשומים':'';
+  $('#pplGrid').innerHTML=list.length?list.map(p=>`<button class="tile" data-id="${p.id}"><div class="ph"><img src="${p.photo}" loading="lazy"></div>
+    <span class="nm">${esc(p.first||fullName(p))}</span>${p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`).join('')
+    :`<div class="empty" style="grid-column:1/-1">${S.people.length?'לא נמצאו תוצאות':'עדיין אין אנשים — צלמו קבוצה ותנו שמות לפרצופים'}</div>`;
+  $('#pplGrid').querySelectorAll('.tile').forEach(t=>t.onclick=()=>personSheet(t.dataset.id));
+}
+$('#q').oninput=renderPeople;
+
+/* ---------- attendance ---------- */
+function renderAtt(){
+  const ss=[...S.sessions].sort((a,b)=>b.ts-a.ts);
+  if(!ss.length){$('#attList').innerHTML='<div class="empty">אין עדיין מפגשים</div>';return}
+  const g={};ss.forEach(s=>(g[dayKey(s.ts)]=g[dayKey(s.ts)]||[]).push(s));
+  $('#attList').innerHTML=Object.values(g).map(arr=>`<div class="day"><h3>${fDate(arr[0].ts)}</h3>${arr.map(s=>{
+    const ps=s.present.map(P).filter(Boolean);
+    return `<button class="ses" data-s="${s.id}"><span class="t">${fTime(s.ts)}</span><span class="c">${ps.length} נוכחים</span>
+      <span class="avs">${ps.slice(0,5).map(p=>`<img src="${p.photo}">`).join('')}${ps.length>5?`<span>+${ps.length-5}</span>`:''}</span></button>`}).join('')}</div>`).join('');
+  $('#attList').querySelectorAll('.ses').forEach(b=>b.onclick=()=>sessionSheet(b.dataset.s));
+}
+function sessionSheet(sid,editDate=false){
+  const s=SES(sid);if(!s)return;
+  const pres=s.present.map(P).filter(Boolean).sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
+  const abs=S.people.filter(p=>!s.present.includes(p.id)).sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
+  const X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  openSheet(`<h2 style="margin-top:6px">${fDate(s.ts)}</h2><div class="meta">${fTime(s.ts)} · ${pres.length} נוכחים</div>
+    ${editDate?`<input type="datetime-local" class="dt" id="dt" value="${toLocalInput(s.ts)}"><div class="acts"><button class="btn sec" id="dtNo">ביטול</button><button class="btn pri" id="dtOk">שמירת תאריך</button></div>`
+      :`<div class="acts"><button class="btn sec" id="chD">שינוי תאריך / שעה</button></div>`}
+    <div class="sub">נכחו <small>${pres.length}</small></div>
+    <div class="list">${pres.map(p=>`<div class="li"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a" data-rm="${p.id}" aria-label="הסרה">${X}</button></div>`).join('')||'<div class="li"><span class="d">אין</span></div>'}</div>
+    ${abs.length?`<div class="sub">לא נכחו <small>${abs.length}</small></div>
+    <div class="list">${abs.map(p=>`<div class="li off"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a add" data-ad="${p.id}" aria-label="הוספה">${PLUS}</button></div>`).join('')}</div>`:''}
+    <div class="acts" style="margin-top:18px"><button class="btn dan" id="delS">מחיקת המפגש</button></div>`);
+  const B=$('#sheetBody');
+  B.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>personSheet(b.dataset.p));
+  B.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>withCode(async()=>{s.present=s.present.filter(x=>x!==b.dataset.rm);
+    if(cur&&cur.sid===sid)cur.faces.forEach(f=>{if(f.pid===b.dataset.rm)f.pid=null});await save();renderAll();sessionSheet(sid)}));
+  B.querySelectorAll('[data-ad]').forEach(b=>b.onclick=()=>withCode(async()=>{s.present.push(b.dataset.ad);await save();renderAll();sessionSheet(sid)}));
+  if($('#chD'))$('#chD').onclick=()=>withCode(()=>sessionSheet(sid,true));
+  if($('#dtNo'))$('#dtNo').onclick=()=>sessionSheet(sid);
+  if($('#dtOk'))$('#dtOk').onclick=()=>withCode(async()=>{const v=$('#dt').value;if(!v)return;s.ts=new Date(v).getTime();await save();renderAll();sessionSheet(sid);toast('התאריך עודכן ✓')});
+  $('#delS').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק את המפגש?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
+    S.sessions=S.sessions.filter(x=>x.id!==sid);if(cur&&cur.sid===sid)cur=null;await save();closeSheet();renderAll();toast('נמחק')});
+}
+
+/* ---------- export / settings ---------- */
+function download(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+$('#csvBtn').onclick=()=>{
+  if(!S.sessions.length){toast('אין נתונים לייצוא');return}
+  const ss=[...S.sessions].sort((a,b)=>a.ts-b.ts);
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const head=['שם פרטי','שם משפחה',...S.fields,'סה"כ',...ss.map(s=>fShort(s.ts)+' '+fTime(s.ts))];
+  const rows=S.people.sort((a,b)=>fullName(a).localeCompare(fullName(b),'he')).map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':'');
+    return [p.first,p.last,...S.fields.map(f=>(p.extra||{})[f]),m.filter(Boolean).length,...m]});
+  download('נוכחות-'+dayKey(Date.now())+'.csv','\ufeff'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+};
+$('#setBtn').onclick=()=>{
+  openSheet(`<h2 style="margin-top:6px">הגדרות</h2><div class="meta">${S.people.length} אנשים · ${S.sessions.length} מפגשים</div>
+    <div class="list">
+      <button class="li" id="sCode"><span class="n">שינוי קוד</span></button>
+      <button class="li" id="sExp"><span class="n">גיבוי — הורדת קובץ</span></button>
+      <button class="li" id="sImp"><span class="n">שחזור מגיבוי</span></button>
+      <button class="li" id="sCsv"><span class="n">ייצוא נוכחות לאקסל</span></button>
+    </div>
+    <div class="acts" style="margin-top:18px"><button class="btn dan" id="sWipe">מחיקת כל הנתונים</button></div>
+    <p style="color:var(--mute);font-size:12px;text-align:center;margin-top:16px">הכל נשמר רק במכשיר הזה. מומלץ לגבות מדי פעם.</p>`);
+  $('#sCode').onclick=()=>withCode(async()=>{const n=await dialog({title:'קוד חדש',text:'4 ספרות לפחות',type:'text',check:v=>/^\d{4,}$/.test(v)});if(n){S.code=n;await save();toast('הקוד עודכן ✓')}});
+  $('#sExp').onclick=()=>download('גיבוי-נוכחות-'+dayKey(Date.now())+'.json',JSON.stringify(S),'application/json');
+  $('#sImp').onclick=()=>withCode(()=>$('#fImp').click());
+  $('#sCsv').onclick=()=>$('#csvBtn').click();
+  $('#sWipe').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק הכל?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
+    S={people:[],fields:[],sessions:[],code:S.code};cur=null;await save();closeSheet();renderAll();toast('נמחק')});
+};
+$('#fImp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const d=JSON.parse(await f.text());if(!Array.isArray(d.people)||!Array.isArray(d.sessions))throw 0;
+    S={people:d.people,fields:d.fields||[],sessions:d.sessions,code:d.code||S.code};cur=null;await save();closeSheet();renderAll();toast('שוחזר ✓')}
+  catch(err){toast('קובץ גיבוי לא תקין')}};
+
+/* ---------- nav ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('act',x===b));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('act',v.id===b.dataset.v));
+  window.scrollTo(0,0);
+});
+function renderAll(){renderCapture();renderPeople();renderAtt()}
+
+/* ---------- boot ---------- */
+(async()=>{
+  paintLock();
+  try{await idb.open();const st=await idb.get('state');if(st)S={...S,...st}}catch(e){toast('האחסון לא זמין')}
+  S.sessions=S.sessions.filter(s=>s.present.length);
+  renderAll();loadModels();
+})();
+</script>
+</body>
+</html>
