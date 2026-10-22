@@ -4,7 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>נוכחות</title>
+<meta name="description" content="PO — נוכחות לפי זיהוי פנים">
+<title>PO</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PO">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
@@ -21,9 +29,12 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 input,select{font:inherit;color:var(--ink)}
 header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
   display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
-header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px}
-header h1 span{color:var(--blue)}
-.hbtns{display:flex;gap:6px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{width:36px;height:36px;object-fit:contain}
+.brand h1{margin:0;font-size:22px;font-weight:700;letter-spacing:1px;line-height:1}
+.brand small{display:block;font-size:11px;color:var(--mute);font-weight:400;letter-spacing:0;margin-top:2px}
+.hbtns{display:flex;gap:2px}
+#instBtn{display:none}#instBtn.show{display:grid}
 .ib{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--mute)}
 .ib:active{background:var(--sky)}
 .ib.on{color:var(--blue);background:var(--sky)}
@@ -70,6 +81,18 @@ main{max-width:720px;margin:0 auto;padding:16px}
 .search{width:100%;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--soft);padding:0 14px;outline:none}
 .search:focus{border-color:var(--blue);background:#fff}
 .empty{text-align:center;color:var(--mute);padding:40px 10px;font-size:14px}
+.gbar{display:flex;gap:8px;overflow-x:auto;margin:12px -16px 0;padding:2px 16px;scrollbar-width:none}
+.gbar::-webkit-scrollbar{display:none}
+.gwrap{display:flex;gap:8px;flex-wrap:wrap}
+.gchip{flex:none;height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:14px;white-space:nowrap;color:var(--ink)}
+.gchip small{color:var(--mute);margin-inline-start:4px;font-size:12px}
+.gchip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.gchip.on small{color:rgba(255,255,255,.8)}
+.gchip.add{border-style:dashed;color:var(--blue)}
+.sechead .lnk{color:var(--blue);font-size:14px;font-weight:500;padding:4px 2px}
+.tile.sel .ph{border:3px solid var(--blue)}
+.tile.sel .ph::after{content:"✓";position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;display:grid;place-items:center}
+.tile.dim .ph{opacity:.55}
 
 /* attendance */
 .day{margin-bottom:18px}
@@ -148,8 +171,10 @@ nav button.act{color:var(--blue)}
 <body>
 
 <header>
-  <h1>נוכח<span>ות</span></h1>
+  <div class="brand"><img src="logo.png" alt=""><h1>PO<small>נוכחות</small></h1></div>
   <div class="hbtns">
+    <button class="ib" id="instBtn" aria-label="התקנה כאפליקציה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg></button>
+    <button class="ib" id="shareBtn" aria-label="שיתוף"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.7 10.7l6.6-3.9M8.7 13.3l6.6 3.9"/></svg></button>
     <button class="ib" id="lockBtn" aria-label="נעילה"></button>
     <button class="ib" id="setBtn" aria-label="הגדרות"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
@@ -171,7 +196,8 @@ nav button.act{color:var(--blue)}
 
   <section class="view" id="v-ppl">
     <input class="search" id="q" placeholder="חיפוש לפי שם…">
-    <div class="sechead"><h2>אנשים</h2><small id="pplCount"></small></div>
+    <div class="gbar" id="gbar"></div>
+    <div class="sechead" id="pplHead"></div>
     <div class="grid" id="pplGrid"></div>
   </section>
 
@@ -215,7 +241,10 @@ const dayKey=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMo
 const toLocalInput=ts=>{const d=new Date(ts);return new Date(ts-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
 
 /* ---------- storage (IndexedDB) ---------- */
-let S={people:[],fields:[],sessions:[],code:'1234'};
+let S={people:[],fields:[],sessions:[],groups:[],code:'1234'};
+const G=id=>S.groups.find(g=>g.id===id);
+const byName=(a,b)=>fullName(a).localeCompare(fullName(b),'he');
+function setPhoto(p,crop,ts){if(ts>=(p.photoTs||0)){p.photo=crop;p.photoTs=ts}} // תמונה = הצילום האחרון
 const idb={db:null,
   open(){return new Promise((res,rej)=>{const r=indexedDB.open('nochechut',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.db=r.result;res()};r.onerror=()=>rej(r.error)})},
   get(k){return new Promise(res=>{const q=this.db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(undefined)})},
@@ -316,7 +345,7 @@ async function handleFile(file){
   for(const x of cand){if(uf.has(x.i)||up.has(x.p.id))continue;uf.add(x.i);up.add(x.p.id);faces[x.i].pid=x.p.id;faces[x.i].d=x.d}
   const ts=(file.lastModified&&file.lastModified<=Date.now()+60000)?file.lastModified:Date.now();
   const ses={id:uid(),ts,present:[]};
-  faces.forEach(f=>{if(f.pid){ses.present.push(f.pid);learn(P(f.pid),f.desc,f.d)}});
+  faces.forEach(f=>{if(f.pid){const p=P(f.pid);ses.present.push(f.pid);learn(p,f.desc,f.d);setPhoto(p,f.crop,ts)}});
   S.sessions.push(ses);await save();
   cur={sid:ses.id,faces};renderCapture();renderAtt();renderPeople();
 }
@@ -351,11 +380,14 @@ async function addField(){const n=await dialog({title:'שדה חדש',text:'הש
 
 function nameSheet(i){
   const f=cur.faces[i],ses=SES(cur.sid);
-  const others=S.people.filter(p=>!ses.present.includes(p.id)).sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
+  const others=S.people.filter(p=>!ses.present.includes(p.id)).sort(byName);
+  const gsel=new Set(curGroup?[curGroup]:[]);
   const draw=(vals)=>{
     openSheet(`<img class="pp" src="${f.crop}"><h2>מי זה?</h2><div class="meta">אדם חדש</div>
       ${fieldInputs(vals)}
-      <div class="acts"><button class="btn ghost" id="af">+ הוסף שדה</button></div>
+      <div class="sub">קבוצות</div>
+      <div class="gwrap" id="ng">${S.groups.map(g=>`<button class="gchip ${gsel.has(g.id)?'on':''}" data-g="${g.id}">${esc(g.name)}</button>`).join('')}<button class="gchip add" id="ngAdd">+ קבוצה</button></div>
+      <div class="acts" style="margin-top:10px"><button class="btn ghost" id="af">+ הוסף שדה</button></div>
       <button class="btn pri full" id="sv">שמירה</button>
       ${others.length?`<div class="or">או שזה מישהו שכבר קיים</div>
       <select class="sel" id="ex"><option value="">בחרו מהרשימה…</option>${others.map(p=>`<option value="${p.id}">${esc(fullName(p))}</option>`).join('')}</select>
@@ -363,11 +395,13 @@ function nameSheet(i){
       <div class="acts" style="margin-top:14px"><button class="btn dan" id="sk">${f.skip?'בטל דילוג':'דלג על הפרצוף הזה'}</button></div>`);
     setTimeout(()=>{const fi=$('#ff input');if(fi&&!vals)fi.focus()},300);
     $('#af').onclick=async()=>{const v=readInputs();if(await addField())draw(v)};
+    $('#ng').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const g=b.dataset.g;gsel.has(g)?gsel.delete(g):gsel.add(g);b.classList.toggle('on')});
+    $('#ngAdd').onclick=async()=>{const v=readInputs();const g=await newGroup();if(g){gsel.add(g.id);draw(v)}};
     $('#sv').onclick=async()=>{const v=readInputs();if(!v.first&&!v.last){toast('הזינו שם');return}
-      const p={id:uid(),first:v.first,last:v.last,extra:v.extra,photo:f.crop,descriptors:[f.desc],created:Date.now()};
-      S.people.push(p);ses.present.push(p.id);f.pid=p.id;f.skip=false;await save();closeSheet();renderCapture();renderPeople();renderAtt();toast('נשמר ✓')};
+      const p={id:uid(),first:v.first,last:v.last,extra:v.extra,groups:[...gsel],photo:f.crop,photoTs:ses.ts,descriptors:[f.desc],created:Date.now()};
+      S.people.push(p);ses.present.push(p.id);f.pid=p.id;f.skip=false;await save();closeSheet();renderAll();toast('נשמר ✓')};
     if($('#asg'))$('#asg').onclick=async()=>{const id=$('#ex').value;if(!id)return;const p=P(id);
-      learn(p,f.desc);ses.present.push(id);f.pid=id;f.skip=false;await save();closeSheet();renderCapture();renderAtt();toast('שויך ל'+fullName(p))};
+      learn(p,f.desc);setPhoto(p,f.crop,ses.ts);ses.present.push(id);f.pid=id;f.skip=false;await save();closeSheet();renderAll();toast('שויך ל'+fullName(p))};
     $('#sk').onclick=()=>{f.skip=!f.skip;closeSheet();renderCapture()};
   };
   draw();
@@ -384,6 +418,8 @@ function personSheet(id,edit=false){
     <div class="acts">${edit
       ?`<button class="btn ghost" id="af">+ הוסף שדה</button><button class="btn pri" id="sv">שמירה</button>`
       :`<button class="btn sec" id="ed">עריכה</button><button class="btn ghost" id="af">+ הוסף שדה</button>`}</div>
+    <div class="sub">קבוצות <small>הקישו לשיוך / ביטול</small></div>
+    <div class="gwrap" id="pg">${S.groups.map(g=>`<button class="gchip ${(p.groups||[]).includes(g.id)?'on':''}" data-g="${g.id}">${esc(g.name)}</button>`).join('')}<button class="gchip add" id="pgAdd">+ קבוצה</button></div>
     <div class="sub">נוכחות <small>${att.length}</small></div>
     ${att.length?`<div class="list">${att.map(s=>`<button class="li" data-s="${s.id}"><span class="n">${fDate(s.ts)}</span><span class="d">${fTime(s.ts)}</span></button>`).join('')}</div>`:'<div class="empty" style="padding:16px">אין עדיין נוכחות</div>'}
     ${edit?`<div class="acts" style="margin-top:18px"><button class="btn dan" id="del">מחיקת האדם</button></div>`:''}`);
@@ -394,17 +430,76 @@ function personSheet(id,edit=false){
     if(ok===null)return;S.people=S.people.filter(x=>x.id!==id);S.sessions.forEach(s=>s.present=s.present.filter(x=>x!==id));
     if(cur)cur.faces.forEach(f=>{if(f.pid===id)f.pid=null});await save();closeSheet();renderAll();toast('נמחק')});
   document.querySelectorAll('#sheetBody .li[data-s]').forEach(b=>b.onclick=()=>sessionSheet(b.dataset.s));
+  $('#pg').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>withCode(async()=>{toggleMember(p,b.dataset.g);b.classList.toggle('on');await save();renderPeople()}));
+  $('#pgAdd').onclick=()=>withCode(async()=>{const g=await newGroup();if(!g)return;toggleMember(p,g.id);await save();renderPeople();
+    const b=document.createElement('button');b.className='gchip on';b.dataset.g=g.id;b.textContent=g.name;
+    b.onclick=()=>withCode(async()=>{toggleMember(p,g.id);b.classList.toggle('on');await save();renderPeople()});$('#pgAdd').before(b)});
+}
+
+/* ---------- people ---------- */
+/* ---------- groups ---------- */
+let curGroup='';
+const inGroup=(p,gid)=>(p.groups||[]).includes(gid);
+function toggleMember(p,gid){p.groups=p.groups||[];const i=p.groups.indexOf(gid);i<0?p.groups.push(gid):p.groups.splice(i,1)}
+async function newGroup(){
+  const n=await dialog({title:'קבוצה חדשה',placeholder:'למשל: ילדים ב׳, בוגרים, שני-רביעי'});
+  if(!n)return null;if(S.groups.some(g=>g.name===n)){toast('יש כבר קבוצה בשם הזה');return null}
+  const g={id:uid(),name:n};S.groups.push(g);await save();renderGroupBar();return g;
+}
+function renderGroupBar(){
+  if(curGroup&&!G(curGroup))curGroup='';
+  const cnt=gid=>S.people.filter(p=>inGroup(p,gid)).length;
+  $('#gbar').innerHTML=`<button class="gchip ${curGroup?'':'on'}" data-g="">הכל<small>${S.people.length}</small></button>`+
+    S.groups.map(g=>`<button class="gchip ${curGroup===g.id?'on':''}" data-g="${g.id}">${esc(g.name)}<small>${cnt(g.id)}</small></button>`).join('')+
+    `<button class="gchip add" id="gAdd">+ קבוצה</button>`;
+  $('#gbar').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{curGroup=b.dataset.g;renderPeople()});
+  $('#gAdd').onclick=async()=>{const g=await newGroup();if(g){curGroup=g.id;renderPeople();assignSheet(g.id)}};
+}
+function assignSheet(gid){
+  withCode(()=>{
+    const g=G(gid);if(!g)return;
+    const draw=()=>{
+      const list=[...S.people].sort(byName),n=list.filter(p=>inGroup(p,gid)).length;
+      openSheet(`<h2 style="margin-top:6px">${esc(g.name)}</h2><div class="meta">הקישו על פרצוף כדי להוסיף או להוציא · ${n} בקבוצה</div>
+        ${list.length?`<div class="grid">${list.map(p=>`<button class="tile ${inGroup(p,gid)?'sel':'dim'}" data-id="${p.id}"><div class="ph"><img src="${p.photo}" loading="lazy"></div>
+        <span class="nm">${esc(p.first||fullName(p))}</span>${p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`).join('')}</div>`:'<div class="empty">עדיין אין אנשים</div>'}
+        <div style="margin-top:20px"><button class="btn pri full" id="aDone">סיום</button></div>`,()=>renderPeople());
+      $('#sheetBody').querySelectorAll('.tile').forEach(t=>t.onclick=async()=>{const p=P(t.dataset.id);toggleMember(p,gid);touchLock();
+        t.classList.toggle('sel');t.classList.toggle('dim');await save();
+        $('#sheetBody .meta').textContent='הקישו על פרצוף כדי להוסיף או להוציא · '+S.people.filter(x=>inGroup(x,gid)).length+' בקבוצה'});
+      $('#aDone').onclick=closeSheet;
+    };
+    draw();
+  });
+}
+function groupEditSheet(gid){
+  withCode(()=>{
+    const g=G(gid);if(!g)return;
+    openSheet(`<h2 style="margin-top:6px">${esc(g.name)}</h2><div class="meta">עריכת קבוצה</div>
+      <div class="list"><button class="li" id="gRen"><span class="n">שינוי שם</span></button><button class="li" id="gAsg"><span class="n">שיוך אנשים</span></button></div>
+      <div class="acts" style="margin-top:18px"><button class="btn dan" id="gDel">מחיקת הקבוצה</button></div>
+      <p style="color:var(--mute);font-size:12px;text-align:center">מחיקת קבוצה לא מוחקת אנשים או נוכחות</p>`);
+    $('#gRen').onclick=async()=>{const n=await dialog({title:'שם חדש לקבוצה',value:g.name});if(!n)return;g.name=n;await save();closeSheet();renderAll()};
+    $('#gAsg').onclick=()=>assignSheet(gid);
+    $('#gDel').onclick=async()=>{const ok=await dialog({title:'למחוק את "'+g.name+'"?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
+      S.groups=S.groups.filter(x=>x.id!==gid);S.people.forEach(p=>p.groups=(p.groups||[]).filter(x=>x!==gid));curGroup='';await save();closeSheet();renderAll();toast('נמחק')};
+  });
 }
 
 /* ---------- people ---------- */
 function renderPeople(){
+  renderGroupBar();
   const q=$('#q').value.trim().toLowerCase();
-  const list=S.people.filter(p=>!q||[fullName(p),...Object.values(p.extra||{})].join(' ').toLowerCase().includes(q))
-    .sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
-  $('#pplCount').textContent=S.people.length?S.people.length+' רשומים':'';
+  const pool=S.people.filter(p=>!curGroup||inGroup(p,curGroup));
+  const list=pool.filter(p=>!q||[fullName(p),...Object.values(p.extra||{})].join(' ').toLowerCase().includes(q)).sort(byName);
+  const g=curGroup&&G(curGroup);
+  $('#pplHead').innerHTML=g
+    ?`<h2>${esc(g.name)}</h2><span><button class="lnk" id="hAsg">שיוך אנשים</button> · <button class="lnk" id="hEd">עריכה</button></span>`
+    :`<h2>אנשים</h2><small>${S.people.length?S.people.length+' רשומים':''}</small>`;
+  if(g){$('#hAsg').onclick=()=>assignSheet(g.id);$('#hEd').onclick=()=>groupEditSheet(g.id)}
   $('#pplGrid').innerHTML=list.length?list.map(p=>`<button class="tile" data-id="${p.id}"><div class="ph"><img src="${p.photo}" loading="lazy"></div>
     <span class="nm">${esc(p.first||fullName(p))}</span>${p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`).join('')
-    :`<div class="empty" style="grid-column:1/-1">${S.people.length?'לא נמצאו תוצאות':'עדיין אין אנשים — צלמו קבוצה ותנו שמות לפרצופים'}</div>`;
+    :`<div class="empty" style="grid-column:1/-1">${g&&!pool.length?'אין עדיין אנשים בקבוצה — הקישו "שיוך אנשים"':S.people.length?'לא נמצאו תוצאות':'עדיין אין אנשים — צלמו קבוצה ותנו שמות לפרצופים'}</div>`;
   $('#pplGrid').querySelectorAll('.tile').forEach(t=>t.onclick=()=>personSheet(t.dataset.id));
 }
 $('#q').oninput=renderPeople;
@@ -420,21 +515,27 @@ function renderAtt(){
       <span class="avs">${ps.slice(0,5).map(p=>`<img src="${p.photo}">`).join('')}${ps.length>5?`<span>+${ps.length-5}</span>`:''}</span></button>`}).join('')}</div>`).join('');
   $('#attList').querySelectorAll('.ses').forEach(b=>b.onclick=()=>sessionSheet(b.dataset.s));
 }
+let sesG='';
 function sessionSheet(sid,editDate=false){
   const s=SES(sid);if(!s)return;
-  const pres=s.present.map(P).filter(Boolean).sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
-  const abs=S.people.filter(p=>!s.present.includes(p.id)).sort((a,b)=>fullName(a).localeCompare(fullName(b),'he'));
+  if(sesG&&!G(sesG))sesG='';
+  const inF=p=>!sesG||inGroup(p,sesG);
+  const pres=s.present.map(P).filter(Boolean).filter(inF).sort(byName);
+  const abs=S.people.filter(p=>!s.present.includes(p.id)).filter(inF).sort(byName);
+  const gchips=S.groups.length?`<div class="gbar" id="sg" style="margin-top:14px"><button class="gchip ${sesG?'':'on'}" data-g="">כולם</button>${S.groups.map(g=>`<button class="gchip ${sesG===g.id?'on':''}" data-g="${g.id}">${esc(g.name)}</button>`).join('')}</div>`:'';
   const X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   const PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-  openSheet(`<h2 style="margin-top:6px">${fDate(s.ts)}</h2><div class="meta">${fTime(s.ts)} · ${pres.length} נוכחים</div>
+  openSheet(`<h2 style="margin-top:6px">${fDate(s.ts)}</h2><div class="meta">${fTime(s.ts)} · ${s.present.filter(P).length} נוכחים</div>
     ${editDate?`<input type="datetime-local" class="dt" id="dt" value="${toLocalInput(s.ts)}"><div class="acts"><button class="btn sec" id="dtNo">ביטול</button><button class="btn pri" id="dtOk">שמירת תאריך</button></div>`
       :`<div class="acts"><button class="btn sec" id="chD">שינוי תאריך / שעה</button></div>`}
+    ${gchips}
     <div class="sub">נכחו <small>${pres.length}</small></div>
     <div class="list">${pres.map(p=>`<div class="li"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a" data-rm="${p.id}" aria-label="הסרה">${X}</button></div>`).join('')||'<div class="li"><span class="d">אין</span></div>'}</div>
     ${abs.length?`<div class="sub">לא נכחו <small>${abs.length}</small></div>
     <div class="list">${abs.map(p=>`<div class="li off"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a add" data-ad="${p.id}" aria-label="הוספה">${PLUS}</button></div>`).join('')}</div>`:''}
     <div class="acts" style="margin-top:18px"><button class="btn dan" id="delS">מחיקת המפגש</button></div>`);
   const B=$('#sheetBody');
+  if($('#sg'))$('#sg').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{sesG=b.dataset.g;const y=$('#sheet').scrollTop;sessionSheet(sid,editDate);$('#sheet').scrollTop=y});
   B.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>personSheet(b.dataset.p));
   B.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>withCode(async()=>{s.present=s.present.filter(x=>x!==b.dataset.rm);
     if(cur&&cur.sid===sid)cur.faces.forEach(f=>{if(f.pid===b.dataset.rm)f.pid=null});await save();renderAll();sessionSheet(sid)}));
@@ -452,9 +553,9 @@ $('#csvBtn').onclick=()=>{
   if(!S.sessions.length){toast('אין נתונים לייצוא');return}
   const ss=[...S.sessions].sort((a,b)=>a.ts-b.ts);
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const head=['שם פרטי','שם משפחה',...S.fields,'סה"כ',...ss.map(s=>fShort(s.ts)+' '+fTime(s.ts))];
-  const rows=S.people.sort((a,b)=>fullName(a).localeCompare(fullName(b),'he')).map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':'');
-    return [p.first,p.last,...S.fields.map(f=>(p.extra||{})[f]),m.filter(Boolean).length,...m]});
+  const head=['שם פרטי','שם משפחה','קבוצות',...S.fields,'סה"כ',...ss.map(s=>fShort(s.ts)+' '+fTime(s.ts))];
+  const rows=[...S.people].sort(byName).map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':'');
+    return [p.first,p.last,(p.groups||[]).map(G).filter(Boolean).map(g=>g.name).join(' / '),...S.fields.map(f=>(p.extra||{})[f]),m.filter(Boolean).length,...m]});
   download('נוכחות-'+dayKey(Date.now())+'.csv','\ufeff'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
 };
 $('#setBtn').onclick=()=>{
@@ -472,11 +573,11 @@ $('#setBtn').onclick=()=>{
   $('#sImp').onclick=()=>withCode(()=>$('#fImp').click());
   $('#sCsv').onclick=()=>$('#csvBtn').click();
   $('#sWipe').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק הכל?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
-    S={people:[],fields:[],sessions:[],code:S.code};cur=null;await save();closeSheet();renderAll();toast('נמחק')});
+    S={people:[],fields:[],sessions:[],groups:[],code:S.code};curGroup='';sesG='';cur=null;await save();closeSheet();renderAll();toast('נמחק')});
 };
 $('#fImp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const d=JSON.parse(await f.text());if(!Array.isArray(d.people)||!Array.isArray(d.sessions))throw 0;
-    S={people:d.people,fields:d.fields||[],sessions:d.sessions,code:d.code||S.code};cur=null;await save();closeSheet();renderAll();toast('שוחזר ✓')}
+    S={people:d.people,fields:d.fields||[],sessions:d.sessions,groups:d.groups||[],code:d.code||S.code};migrate();cur=null;await save();closeSheet();renderAll();toast('שוחזר ✓')}
   catch(err){toast('קובץ גיבוי לא תקין')}};
 
 /* ---------- nav ---------- */
@@ -486,12 +587,35 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   window.scrollTo(0,0);
 });
 function renderAll(){renderCapture();renderPeople();renderAtt()}
+function migrate(){S.groups=S.groups||[];S.people.forEach(p=>{p.groups=p.groups||[];if(!p.photoTs)p.photoTs=p.created||0})}
+
+/* ---------- install / share ---------- */
+let deferredPrompt=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+if(isIOS&&!isStandalone())$('#instBtn').classList.add('show');
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#instBtn').classList.add('show')});
+addEventListener('appinstalled',()=>{deferredPrompt=null;$('#instBtn').classList.remove('show');toast('PO הותקנה ✓')});
+$('#instBtn').onclick=async()=>{
+  if(deferredPrompt){deferredPrompt.prompt();const r=await deferredPrompt.userChoice;deferredPrompt=null;if(r.outcome==='accepted')$('#instBtn').classList.remove('show');return}
+  if(isIOS)openSheet(`<img class="pp" src="icon-192.png" style="width:84px;aspect-ratio:1;border-radius:20px"><h2>התקנת PO</h2>
+    <div class="meta">באייפון ההתקנה נעשית מתוך ספארי</div>
+    <div class="list"><div class="li"><span class="n">1. לוחצים על כפתור השיתוף <b>⎙</b> בתחתית ספארי</span></div>
+    <div class="li"><span class="n">2. בוחרים "הוספה למסך הבית"</span></div><div class="li"><span class="n">3. לוחצים "הוסף"</span></div></div>
+    <div style="margin-top:18px"><button class="btn pri full" onclick="closeSheet()">הבנתי</button></div>`);
+};
+$('#shareBtn').onclick=async()=>{
+  const data={title:'PO',text:'PO — נוכחות לפי זיהוי פנים',url:location.href.split('#')[0]};
+  if(navigator.share){try{await navigator.share(data)}catch(e){}return}
+  try{await navigator.clipboard.writeText(data.url);toast('הקישור הועתק')}catch(e){toast(data.url)}
+};
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
 /* ---------- boot ---------- */
 (async()=>{
   paintLock();
   try{await idb.open();const st=await idb.get('state');if(st)S={...S,...st}}catch(e){toast('האחסון לא זמין')}
-  S.sessions=S.sessions.filter(s=>s.present.length);
+  migrate();S.sessions=S.sessions.filter(s=>s.present.length);
   renderAll();loadModels();
 })();
 </script>
