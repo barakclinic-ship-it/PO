@@ -94,8 +94,8 @@ main{max-width:720px;margin:0 auto;padding:16px}
 .gchip.on small{color:rgba(255,255,255,.8)}
 .gchip.add{border-style:dashed;color:var(--blue)}
 .sechead .lnk{color:var(--blue);font-size:14px;font-weight:500;padding:4px 2px}
-.tile.sel .ph{border:3px solid var(--blue)}
-.tile.sel .ph::after{content:"✓";position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;display:grid;place-items:center}
+.tile.picked .ph{border-color:var(--blue);box-shadow:0 0 0 2.5px var(--blue)}
+.tile.picked .ph::after{content:"✓";position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:13px;display:grid;place-items:center}
 .tile.dim .ph{opacity:.55}
 
 /* attendance */
@@ -170,6 +170,18 @@ nav button.act{color:var(--blue)}
   padding:10px 18px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;white-space:nowrap}
 .toast.on{opacity:1;transform:translateX(-50%)}
 .hide{display:none!important}
+.selbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom));z-index:7;display:none;gap:8px;padding:10px 16px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);max-width:720px;margin:0 auto}
+.selbar.on{display:flex}
+#v-ppl,#v-att{padding-bottom:70px}
+.ses.picked{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue);background:var(--soft)}
+.ses.dim{opacity:.6}
+.ses .ck{width:22px;height:22px;border-radius:50%;border:1.5px solid #b9daef;flex:none;display:grid;place-items:center;font-size:13px;color:#fff}
+.ses.picked .ck{background:var(--blue);border-color:var(--blue)}
+.ses.picked .ck::after{content:"✓"}
+.day h3.dsel{cursor:pointer;display:flex;justify-content:space-between}
+.day h3.dsel span{color:var(--blue)}
+.selbar .btn{flex:1;height:44px;padding:0 8px;font-size:14px}
+.selbar .btn:disabled{opacity:.4}
 </style>
 </head>
 <body>
@@ -206,7 +218,7 @@ nav button.act{color:var(--blue)}
   </section>
 
   <section class="view" id="v-att">
-    <div class="sechead" style="margin-top:4px"><h2>נוכחות</h2><button class="btn ghost" style="height:32px;padding:0 6px" id="csvBtn">ייצוא לאקסל</button></div>
+    <div class="sechead" style="margin-top:4px" id="attHead"></div>
     <div id="attList"></div>
   </section>
 </main>
@@ -217,6 +229,7 @@ nav button.act{color:var(--blue)}
   <button data-v="v-att"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8.5 14.5l2 2 4-4"/></svg>נוכחות</button>
 </nav>
 
+<div class="selbar" id="selbar"></div>
 <div class="back" id="back"></div>
 <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
 
@@ -266,15 +279,17 @@ function closeSheet(){$('#back').classList.remove('on');$('#sheet').classList.re
 $('#back').onclick=closeSheet;
 
 /* dialog: code / text */
-function dialog({title,text='',type='text',value='',placeholder='',check}){
+function dialog({title,text='',type='text',value='',placeholder='',check,okText='אישור',danger=false}){
   return new Promise(res=>{
     const d=$('#dlg'),i=$('#dlgI'),b=$('#dlgb');
     $('#dlgT').textContent=title;$('#dlgP').textContent=text;
     i.type=type==='code'?'password':'text';i.inputMode=type==='code'?'numeric':'text';
     i.className=type==='code'?'':'txt';i.value=value;i.placeholder=placeholder;
-    d.classList.add('on');setTimeout(()=>i.focus(),60);
+    const conf=type==='confirm';i.classList.toggle('hide',conf);
+    const okB=$('#dlgOk');okB.textContent=okText;okB.style.background=danger?'var(--danger)':'';
+    d.classList.add('on');if(!conf)setTimeout(()=>i.focus(),60);
     const done=v=>{d.classList.remove('on');i.oninput=i.onkeydown=null;$('#dlgOk').onclick=$('#dlgNo').onclick=null;res(v)};
-    const ok=()=>{const v=i.value.trim();if(check&&!check(v)){b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');i.value='';return}done(v)};
+    const ok=()=>{if(conf){done('yes');return}const v=i.value.trim();if(check&&!check(v)){b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');i.value='';return}done(v)};
     $('#dlgOk').onclick=ok;$('#dlgNo').onclick=()=>done(null);
     i.onkeydown=e=>{if(e.key==='Enter')ok()};
     i.oninput=()=>{if(type==='code'&&i.value.length>=S.code.length)ok()};
@@ -465,7 +480,8 @@ function personSheet(id,edit=false,fi=null){
     <div class="sub">נוכחות <small>${att.length}</small></div>
     ${att.length?`<div class="list">${att.map(s=>`<button class="li" data-s="${s.id}"><span class="n">${fDate(s.ts)}</span><span class="d">${fTime(s.ts)}</span></button>`).join('')}</div>`:'<div class="empty" style="padding:16px">אין עדיין נוכחות</div>'}
     ${edit?`<div class="list" style="margin-top:18px"><label class="li" style="cursor:pointer"><span class="n">תמונה חדשה לזיהוי<br><small style="color:var(--mute)">מאפס את הזיהוי של ${esc(p.first||fullName(p))} לפי תמונה אחת ברורה</small></span><input type="file" accept="image/*" class="hide" id="newPh"></label></div>
-    <div class="acts" style="margin-top:18px"><button class="btn dan" id="del">מחיקת האדם</button></div>`:''}`);
+`:''}
+    <div class="acts" style="margin-top:18px"><button class="btn dan" id="del">מחיקת ${esc(p.first||'האדם')}</button></div>`);
   if($('#notMe'))$('#notMe').onclick=()=>undoMatch(fi);
   if($('#newPh'))$('#newPh').onchange=e=>withCode(async()=>{const file=e.target.files[0];e.target.value='';if(!file)return;
     toast('מנתח…');try{await modelsReady;const hi=await fileToCanvas(file,3000);const x=largest(await analyze(hi));
@@ -475,9 +491,7 @@ function personSheet(id,edit=false,fi=null){
   $('#af').onclick=()=>withCode(async()=>{const v=edit?readInputs():null;if(await addField()){if(v)Object.assign(p,{first:v.first,last:v.last,extra:{...p.extra,...v.extra}});personSheet(id,true)}});
   if($('#ed'))$('#ed').onclick=()=>withCode(()=>personSheet(id,true));
   if($('#sv'))$('#sv').onclick=()=>withCode(async()=>{const v=readInputs();p.first=v.first;p.last=v.last;p.extra={...p.extra,...v.extra};await save();renderAll();personSheet(id);toast('עודכן ✓')});
-  if($('#del'))$('#del').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק את '+fullName(p)+'?',text:'כולל כל הנוכחות שלו. הקלידו "מחק" לאישור',check:v=>v==='מחק'});
-    if(ok===null)return;S.people=S.people.filter(x=>x.id!==id);S.sessions.forEach(s=>s.present=s.present.filter(x=>x!==id));
-    if(cur)cur.faces.forEach(f=>{if(f.pid===id)f.pid=null});await save();closeSheet();renderAll();toast('נמחק')});
+  $('#del').onclick=()=>withCode(async()=>{if(await deletePeople([id]))closeSheet()});
   document.querySelectorAll('#sheetBody .li[data-s]').forEach(b=>b.onclick=()=>sessionSheet(b.dataset.s));
   $('#pg').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>withCode(async()=>{toggleMember(p,b.dataset.g);b.classList.toggle('on');await save();renderPeople()}));
   $('#pgAdd').onclick=()=>withCode(async()=>{const g=await newGroup();if(!g)return;toggleMember(p,g.id);await save();renderPeople();
@@ -485,7 +499,23 @@ function personSheet(id,edit=false,fi=null){
     b.onclick=()=>withCode(async()=>{toggleMember(p,g.id);b.classList.toggle('on');await save();renderPeople()});$('#pgAdd').before(b)});
 }
 
-/* ---------- people ---------- */
+/* ---------- delete helpers ---------- */
+async function deletePeople(ids){
+  if(!ids.length)return false;
+  const one=ids.length===1&&P(ids[0]);
+  const ok=await dialog({type:'confirm',danger:true,okText:'מחיקה',title:one?'למחוק את '+fullName(one)+'?':'למחוק '+ids.length+' אנשים?',text:'כולל הנוכחות שלהם. אי אפשר לבטל.'});
+  if(!ok)return false;
+  const set=new Set(ids);S.people=S.people.filter(x=>!set.has(x.id));S.sessions.forEach(s=>s.present=s.present.filter(x=>!set.has(x)));
+  if(cur)cur.faces.forEach(f=>{if(set.has(f.pid))f.pid=null});purgeEmpty();await save();renderAll();toast(one?'נמחק':ids.length+' נמחקו');return true;
+}
+async function deleteGroup(gid){
+  const g=G(gid);if(!g)return false;
+  const ok=await dialog({type:'confirm',danger:true,okText:'מחיקה',title:'למחוק את הקבוצה "'+g.name+'"?',text:'האנשים והנוכחות נשארים — רק הקבוצה נמחקת.'});
+  if(!ok)return false;
+  S.groups=S.groups.filter(x=>x.id!==gid);S.people.forEach(p=>p.groups=(p.groups||[]).filter(x=>x!==gid));if(curGroup===gid)curGroup='';
+  await save();renderAll();toast('הקבוצה נמחקה');return true;
+}
+
 /* ---------- groups ---------- */
 let curGroup='';
 const inGroup=(p,gid)=>(p.groups||[]).includes(gid);
@@ -510,11 +540,11 @@ function assignSheet(gid){
     const draw=()=>{
       const list=[...S.people].sort(byName),n=list.filter(p=>inGroup(p,gid)).length;
       openSheet(`<h2 style="margin-top:6px">${esc(g.name)}</h2><div class="meta">הקישו על פרצוף כדי להוסיף או להוציא · ${n} בקבוצה</div>
-        ${list.length?`<div class="grid">${list.map(p=>`<button class="tile ${inGroup(p,gid)?'sel':'dim'}" data-id="${p.id}"><div class="ph"><img src="${p.photo}" loading="lazy"></div>
+        ${list.length?`<div class="grid">${list.map(p=>`<button class="tile ${inGroup(p,gid)?'picked':'dim'}" data-id="${p.id}"><div class="ph"><img src="${p.photo}" loading="lazy"></div>
         <span class="nm">${esc(p.first||fullName(p))}</span>${p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`).join('')}</div>`:'<div class="empty">עדיין אין אנשים</div>'}
         <div style="margin-top:20px"><button class="btn pri full" id="aDone">סיום</button></div>`,()=>renderPeople());
       $('#sheetBody').querySelectorAll('.tile').forEach(t=>t.onclick=async()=>{const p=P(t.dataset.id);toggleMember(p,gid);touchLock();
-        t.classList.toggle('sel');t.classList.toggle('dim');await save();
+        t.classList.toggle('picked');t.classList.toggle('dim');await save();
         $('#sheetBody .meta').textContent='הקישו על פרצוף כדי להוסיף או להוציא · '+S.people.filter(x=>inGroup(x,gid)).length+' בקבוצה'});
       $('#aDone').onclick=closeSheet;
     };
@@ -530,8 +560,7 @@ function groupEditSheet(gid){
       <p style="color:var(--mute);font-size:12px;text-align:center">מחיקת קבוצה לא מוחקת אנשים או נוכחות</p>`);
     $('#gRen').onclick=async()=>{const n=await dialog({title:'שם חדש לקבוצה',value:g.name});if(!n)return;g.name=n;await save();closeSheet();renderAll()};
     $('#gAsg').onclick=()=>assignSheet(gid);
-    $('#gDel').onclick=async()=>{const ok=await dialog({title:'למחוק את "'+g.name+'"?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
-      S.groups=S.groups.filter(x=>x.id!==gid);S.people.forEach(p=>p.groups=(p.groups||[]).filter(x=>x!==gid));curGroup='';await save();closeSheet();renderAll();toast('נמחק')};
+    $('#gDel').onclick=async()=>{if(await deleteGroup(gid))closeSheet()};
   });
 }
 
@@ -542,27 +571,82 @@ function renderPeople(){
   const pool=S.people.filter(p=>!curGroup||inGroup(p,curGroup));
   const list=pool.filter(p=>!q||[fullName(p),...Object.values(p.extra||{})].join(' ').toLowerCase().includes(q)).sort(byName);
   const g=curGroup&&G(curGroup);
-  $('#pplHead').innerHTML=g
-    ?`<h2>${esc(g.name)}</h2><span><button class="lnk" id="hAsg">שיוך אנשים</button> · <button class="lnk" id="hEd">עריכה</button></span>`
-    :`<h2>אנשים</h2><small>${S.people.length?S.people.length+' רשומים':''}</small>`;
-  if(g){$('#hAsg').onclick=()=>assignSheet(g.id);$('#hEd').onclick=()=>groupEditSheet(g.id)}
-  $('#pplGrid').innerHTML=list.length?list.map(p=>`<button class="tile" data-id="${p.id}"><div class="ph"><img src="${p.photo}" loading="lazy"></div>
+  if(selMode)[...sel].forEach(id=>{if(!P(id))sel.delete(id)});
+  $('#pplHead').innerHTML=selMode
+    ?`<h2>${sel.size} נבחרו</h2><span><button class="lnk" id="hAll">${list.length&&list.every(p=>sel.has(p.id))?'ביטול הכל':'בחירת הכל'}</button></span>`
+    :g?`<h2>${esc(g.name)}</h2><span><button class="lnk" id="hAsg">שיוך</button> · <button class="lnk" id="hRen">שם</button> · <button class="lnk" id="hDel" style="color:var(--danger)">מחיקה</button> · <button class="lnk" id="hSel">בחירה</button></span>`
+    :`<h2>אנשים</h2><span>${S.people.length?`<small>${S.people.length} רשומים</small> · <button class="lnk" id="hSel">בחירה</button>`:''}</span>`;
+  if(g&&!selMode){$('#hAsg').onclick=()=>assignSheet(g.id);
+    $('#hRen').onclick=()=>withCode(async()=>{const n=await dialog({title:'שם חדש לקבוצה',value:g.name});if(n){g.name=n;await save();renderAll()}});
+    $('#hDel').onclick=()=>withCode(()=>deleteGroup(g.id))}
+  if($('#hSel'))$('#hSel').onclick=()=>{selMode=true;sel.clear();renderPeople()};
+  if($('#hAll'))$('#hAll').onclick=()=>{const all=list.every(p=>sel.has(p.id));list.forEach(p=>all?sel.delete(p.id):sel.add(p.id));renderPeople()};
+  renderSelBar();
+  $('#pplGrid').innerHTML=list.length?list.map(p=>`<button class="tile ${selMode?(sel.has(p.id)?'picked':'dim'):''}" data-id="${p.id}"><div class="ph"><img src="${p.photo}" loading="lazy"></div>
     <span class="nm">${esc(p.first||fullName(p))}</span>${p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`).join('')
     :`<div class="empty" style="grid-column:1/-1">${g&&!pool.length?'אין עדיין אנשים בקבוצה — הקישו "שיוך אנשים"':S.people.length?'לא נמצאו תוצאות':'עדיין אין אנשים — צלמו קבוצה ותנו שמות לפרצופים'}</div>`;
-  $('#pplGrid').querySelectorAll('.tile').forEach(t=>t.onclick=()=>personSheet(t.dataset.id));
+  $('#pplGrid').querySelectorAll('.tile').forEach(t=>t.onclick=()=>{const id=t.dataset.id;
+    if(selMode){sel.has(id)?sel.delete(id):sel.add(id);renderPeople();return}personSheet(id)});
+}
+let selMode=false;const sel=new Set();
+function exitSel(){selMode=false;sel.clear();renderPeople()}
+function renderSelBar(){
+  const bar=$('#selbar');
+  if(aSel&&$('#v-att').classList.contains('act')){const n=aPick.size;bar.classList.add('on');
+    bar.innerHTML=`<button class="btn sec" id="sbX">ביטול</button><button class="btn" id="sbDel" style="background:var(--danger);color:#fff" ${n?'':'disabled'}>מחיקה${n?' ('+n+')':''}</button>`;
+    $('#sbX').onclick=()=>{aSel=false;aPick.clear();renderAtt()};
+    $('#sbDel').onclick=()=>withCode(async()=>{if(await deleteSessions([...aPick])){aSel=false;aPick.clear();renderAtt()}});return}
+  const on=selMode&&$('#v-ppl').classList.contains('act');bar.classList.toggle('on',on);if(!on)return;
+  const n=sel.size,g=curGroup&&G(curGroup);
+  bar.innerHTML=`<button class="btn sec" id="sbX">ביטול</button>
+    <button class="btn sec" id="sbG" ${n?'':'disabled'}>לקבוצה</button>
+    ${g?`<button class="btn sec" id="sbOut" ${n?'':'disabled'}>הוצאה</button>`:''}
+    <button class="btn" id="sbDel" style="background:var(--danger);color:#fff" ${n?'':'disabled'}>מחיקה${n?' ('+n+')':''}</button>`;
+  $('#sbX').onclick=exitSel;
+  $('#sbDel').onclick=()=>withCode(async()=>{if(await deletePeople([...sel]))exitSel()});
+  if($('#sbOut'))$('#sbOut').onclick=()=>withCode(async()=>{[...sel].forEach(id=>{const p=P(id);if(p&&inGroup(p,g.id))toggleMember(p,g.id)});await save();toast('הוצאו מ'+g.name);exitSel()});
+  $('#sbG').onclick=()=>withCode(()=>{
+    const ids=[...sel];
+    openSheet(`<h2 style="margin-top:6px">הוספה לקבוצה</h2><div class="meta">${ids.length} אנשים נבחרו</div>
+      <div class="list">${S.groups.map(x=>`<button class="li" data-g="${x.id}"><span class="n">${esc(x.name)}</span><span class="d">${S.people.filter(p=>inGroup(p,x.id)).length}</span></button>`).join('')}
+      <button class="li" id="sgNew"><span class="n" style="color:var(--blue)">+ קבוצה חדשה</span></button></div>`);
+    const addTo=async gid=>{ids.forEach(id=>{const p=P(id);if(p&&!inGroup(p,gid))toggleMember(p,gid)});await save();closeSheet();toast('נוספו ל'+G(gid).name+' ✓');exitSel()};
+    $('#sheetBody').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>addTo(b.dataset.g));
+    $('#sgNew').onclick=async()=>{const x=await newGroup();if(x)addTo(x.id)};
+  });
 }
 $('#q').oninput=renderPeople;
 
 /* ---------- attendance ---------- */
+let aSel=false;const aPick=new Set();
 function renderAtt(){
   const ss=[...S.sessions].sort((a,b)=>b.ts-a.ts);
+  [...aPick].forEach(id=>{if(!SES(id))aPick.delete(id)});
+  if(!ss.length&&aSel){aSel=false;aPick.clear()}
+  $('#attHead').innerHTML=aSel
+    ?`<h2>${aPick.size} נבחרו</h2><button class="lnk" id="aAll">${ss.every(s=>aPick.has(s.id))?'ביטול הכל':'בחירת הכל'}</button>`
+    :`<h2>נוכחות</h2><span>${ss.length?`<button class="lnk" id="csvBtn">ייצוא לאקסל</button> · <button class="lnk" id="aSelBtn">בחירה</button>`:''}</span>`;
+  if($('#csvBtn'))$('#csvBtn').onclick=exportCSV;
+  if($('#aSelBtn'))$('#aSelBtn').onclick=()=>{aSel=true;aPick.clear();renderAtt()};
+  if($('#aAll'))$('#aAll').onclick=()=>{const all=ss.every(s=>aPick.has(s.id));ss.forEach(s=>all?aPick.delete(s.id):aPick.add(s.id));renderAtt()};
+  renderSelBar();
   if(!ss.length){$('#attList').innerHTML='<div class="empty">אין עדיין מפגשים</div>';return}
   const g={};ss.forEach(s=>(g[dayKey(s.ts)]=g[dayKey(s.ts)]||[]).push(s));
-  $('#attList').innerHTML=Object.values(g).map(arr=>`<div class="day"><h3>${fDate(arr[0].ts)}</h3>${arr.map(s=>{
+  $('#attList').innerHTML=Object.entries(g).map(([k,arr])=>`<div class="day"><h3 ${aSel?`class="dsel" data-day="${k}"`:''}>${fDate(arr[0].ts)}${aSel?` <span>${arr.every(s=>aPick.has(s.id))?'✓ כל היום':'בחירת היום'}</span>`:''}</h3>${arr.map(s=>{
     const ps=s.present.map(P).filter(Boolean);
-    return `<button class="ses" data-s="${s.id}"><span class="t">${fTime(s.ts)}</span><span class="c">${ps.length} נוכחים</span>
+    return `<button class="ses ${aSel?(aPick.has(s.id)?'picked':'dim'):''}" data-s="${s.id}">${aSel?`<span class="ck"></span>`:''}<span class="t">${fTime(s.ts)}</span><span class="c">${ps.length} נוכחים</span>
       <span class="avs">${ps.slice(0,5).map(p=>`<img src="${p.photo}">`).join('')}${ps.length>5?`<span>+${ps.length-5}</span>`:''}</span></button>`}).join('')}</div>`).join('');
-  $('#attList').querySelectorAll('.ses').forEach(b=>b.onclick=()=>sessionSheet(b.dataset.s));
+  $('#attList').querySelectorAll('.ses').forEach(b=>b.onclick=()=>{const id=b.dataset.s;
+    if(aSel){aPick.has(id)?aPick.delete(id):aPick.add(id);renderAtt();return}sessionSheet(id)});
+  $('#attList').querySelectorAll('[data-day]').forEach(hd=>hd.onclick=()=>{const arr=g[hd.dataset.day],all=arr.every(s=>aPick.has(s.id));arr.forEach(s=>all?aPick.delete(s.id):aPick.add(s.id));renderAtt()});
+}
+async function deleteSessions(ids){
+  if(!ids.length)return false;
+  const one=ids.length===1&&SES(ids[0]);
+  const ok=await dialog({type:'confirm',danger:true,okText:'מחיקה',title:one?'למחוק את המפגש של '+fShort(one.ts)+' '+fTime(one.ts)+'?':'למחוק '+ids.length+' מפגשים?',text:'הנוכחות של '+(one?'המפגש הזה':'המפגשים האלה')+' תימחק. האנשים נשארים.'});
+  if(!ok)return false;
+  const set=new Set(ids);S.sessions=S.sessions.filter(s=>!set.has(s.id));if(cur&&set.has(cur.sid))cur=null;
+  await save();renderAll();toast(one?'המפגש נמחק':ids.length+' מפגשים נמחקו');return true;
 }
 let sesG='';
 function sessionSheet(sid,editDate=false){
@@ -592,13 +676,12 @@ function sessionSheet(sid,editDate=false){
   if($('#chD'))$('#chD').onclick=()=>withCode(()=>sessionSheet(sid,true));
   if($('#dtNo'))$('#dtNo').onclick=()=>sessionSheet(sid);
   if($('#dtOk'))$('#dtOk').onclick=()=>withCode(async()=>{const v=$('#dt').value;if(!v)return;s.ts=new Date(v).getTime();await save();renderAll();sessionSheet(sid);toast('התאריך עודכן ✓')});
-  $('#delS').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק את המפגש?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
-    S.sessions=S.sessions.filter(x=>x.id!==sid);if(cur&&cur.sid===sid)cur=null;await save();closeSheet();renderAll();toast('נמחק')});
+  $('#delS').onclick=()=>withCode(async()=>{if(await deleteSessions([sid]))closeSheet()});
 }
 
 /* ---------- export / settings ---------- */
 function download(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
-$('#csvBtn').onclick=()=>{
+function exportCSV(){
   if(!S.sessions.length){toast('אין נתונים לייצוא');return}
   const ss=[...S.sessions].sort((a,b)=>a.ts-b.ts);
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
@@ -606,7 +689,7 @@ $('#csvBtn').onclick=()=>{
   const rows=[...S.people].sort(byName).map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':'');
     return [p.first,p.last,(p.groups||[]).map(G).filter(Boolean).map(g=>g.name).join(' / '),...S.fields.map(f=>(p.extra||{})[f]),m.filter(Boolean).length,...m]});
   download('נוכחות-'+dayKey(Date.now())+'.csv','\ufeff'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
-};
+}
 $('#setBtn').onclick=()=>{
   openSheet(`<h2 style="margin-top:6px">הגדרות</h2><div class="meta">${S.people.length} אנשים · ${S.sessions.length} מפגשים</div>
     <div class="list">
@@ -630,7 +713,7 @@ $('#setBtn').onclick=()=>{
   $('#sCode').onclick=()=>withCode(async()=>{const n=await dialog({title:'קוד חדש',text:'4 ספרות לפחות',type:'text',check:v=>/^\d{4,}$/.test(v)});if(n){S.code=n;await save();toast('הקוד עודכן ✓')}});
   $('#sExp').onclick=()=>download('גיבוי-נוכחות-'+dayKey(Date.now())+'.json',JSON.stringify(S),'application/json');
   $('#sImp').onclick=()=>withCode(()=>$('#fImp').click());
-  $('#sCsv').onclick=()=>$('#csvBtn').click();
+  $('#sCsv').onclick=exportCSV;
   $('#sWipe').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק הכל?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
     S={people:[],fields:[],sessions:[],groups:[],code:S.code};curGroup='';sesG='';cur=null;await save();closeSheet();renderAll();toast('נמחק')});
 };
@@ -643,7 +726,7 @@ $('#fImp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('act',x===b));
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('act',v.id===b.dataset.v));
-  window.scrollTo(0,0);
+  window.scrollTo(0,0);renderSelBar();
 });
 function renderAll(){renderCapture();renderPeople();renderAtt()}
 function migrate(){S.groups=S.groups||[];S.sens=S.sens||'normal';S.people.forEach(p=>{p.groups=p.groups||[];if(!p.photoTs)p.photoTs=p.created||0;
