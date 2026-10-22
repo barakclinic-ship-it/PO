@@ -1,5 +1,5 @@
 // PO service worker — בכל עדכון של האפליקציה מעלים את מספר הגרסה
-const VERSION = 'po-v10';
+const VERSION = 'po-v11';
 const MODELS = 'po-models-v1'; // מנוע הזיהוי (cdn.jsdelivr) — נשמר כדי שהאפליקציה תעלה מהר וגם בלי רשת
 const APP_FILES = ['./', 'index.html', 'manifest.webmanifest', 'logo.png',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
