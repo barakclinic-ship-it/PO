@@ -170,6 +170,22 @@ nav button.act{color:var(--blue)}
   padding:10px 18px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;white-space:nowrap}
 .toast.on{opacity:1;transform:translateX(-50%)}
 .hide{display:none!important}
+.pdfhost{position:fixed;left:-12000px;top:0;direction:rtl}
+.pdfp{width:794px;height:1123px;background:#fff;color:#12304a;font-family:Heebo,system-ui,sans-serif;padding:40px 44px;box-sizing:border-box;display:flex;flex-direction:column}
+.pdfh{display:flex;align-items:center;gap:14px;border-bottom:2px solid #e3f3fd;padding-bottom:14px}
+.pdfh img{width:44px;height:44px;object-fit:contain}.pdfh div{flex:1;display:flex;flex-direction:column}.pdfh b{font-size:20px}.pdfh span{color:#7b93a6;font-size:13px}.pdfh i{font-style:normal;color:#7b93a6;font-size:12px}
+.pdfb{flex:1;overflow:hidden;padding-top:16px}.pdff{text-align:center;color:#9fb3c2;font-size:11px;padding-top:8px}
+.pdft h1{margin:0;font-size:24px;font-weight:600}.pdft span{color:#7b93a6;font-size:14px}.pdft{margin-bottom:14px}
+.pdfb h2{font-size:15px;color:#1287c7;margin:14px 0 10px;font-weight:600}
+.pdfg{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:12px}
+.pdfc{text-align:center}.pdfc img{width:100%;aspect-ratio:35/45;object-fit:cover;border-radius:10px;border:1px solid #e4eef6;display:block}.pdfc b{display:block;font-size:13px;margin-top:5px;font-weight:500}.pdfc span{font-size:11px;color:#7b93a6}
+.pdfa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}.pdfa div{display:flex;align-items:center;gap:8px;font-size:13px;color:#4a6478}.pdfa img{width:28px;height:28px;border-radius:50%;object-fit:cover;filter:grayscale(1);opacity:.7}
+.pdfr{display:grid;align-items:center;min-height:34px;font-size:12px;text-align:center;border-bottom:1px solid #eef4f9}.pdfr.z{background:#f6fbff}
+.pdfr.th{font-weight:600;color:#1287c7;background:#e3f3fd;border-radius:8px;min-height:38px;border:0}.pdfr.th small{display:block;font-weight:400;font-size:9px;color:#7b93a6}
+.pdfr.tf{font-weight:600;background:#f3faff}.pdfr .nm{display:flex;align-items:center;gap:8px;text-align:right;padding-right:6px;font-size:13px}.pdfr .nm img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.pdfr .v{color:#2aa7e8;font-size:14px}.pdfr .x{color:#c7d6e1}
+#ac{margin:-4px 0 12px}
+#ac .li{background:var(--soft)}
 .selbar{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom));z-index:7;display:none;gap:8px;padding:10px 16px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);max-width:720px;margin:0 auto}
 .selbar.on{display:flex}
 #v-ppl,#v-att{padding-bottom:70px}
@@ -311,33 +327,48 @@ async function withCode(fn){
 }
 $('#lockBtn').onclick=()=>{if(unlocked){lock();toast('ננעל')}else withCode(()=>toast('פתוח לעריכה'))};
 
-/* ---------- face engine ---------- */
-let modelsReady;
+/* ---------- face engine: two independent engines must agree ---------- */
+// 1) face-api — finds the faces (whole photo + quarters for small faces) and makes fingerprint A
+// 2) Human — re-examines each face up close (468-point mesh alignment) and makes fingerprint B
+// a name is given only when BOTH point to the same person
+const HUMAN_URL='https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.esm.js';
+const HUMAN_MODELS='https://cdn.jsdelivr.net/npm/@vladmandic/human-models@3.0.4/models/';
+let modelsReady,human=null;
 function loadModels(){
   modelsReady=(async()=>{
     if(typeof faceapi==='undefined')throw new Error('lib');
     setStatus('טוען מנוע זיהוי<span class="spin"></span>');
     try{await faceapi.tf.setBackend('webgl')}catch(e){}
     await faceapi.tf.ready();
-    await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
+    const [mod]=await Promise.all([import(HUMAN_URL),faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
+    human=new mod.Human({backend:'webgl',modelBasePath:HUMAN_MODELS,cacheSensitivity:0,debug:false,
+      face:{enabled:true,detector:{rotation:true,maxDetected:3,minConfidence:.2},mesh:{enabled:true},iris:{enabled:false},emotion:{enabled:false},
+        antispoof:{enabled:false},liveness:{enabled:false},description:{enabled:true}},
+      body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:false},segmentation:{enabled:false}});
+    await human.load();
+    await upgradePeople();
     setStatus('');
   })();
   modelsReady.catch(()=>setStatus('לא ניתן לטעון את מנוע הזיהוי — בדקו חיבור לאינטרנט'));
 }
 function dist(a,b){let s=0;for(let i=0;i<128;i++){const d=a[i]-b[i];s+=d*d}return Math.sqrt(s)}
-function minDist(desc,p){let m=9;for(const d of p.descriptors){const x=dist(desc,d);if(x<m)m=x}return m}
-function learn(p,desc,d,manual=false){ // כל אישור שלך = עוד דוגמה; הזיהוי מתחזק עם הזמן
-  if(d!==undefined&&d<0.2)return false; // כמעט זהה לדוגמה קיימת — לא מוסיף מידע
-  if(!manual&&p.descriptors.length&&dist(p.descriptors[0],desc)>SAMPLE_MAX+.05)return false;
-  p.descriptors.push(desc);
-  if(p.descriptors.length>20)p.descriptors.splice(1,1);
+function cosd(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i]}return 1-d/Math.sqrt(na*nb)}
+function best(list,q,f){let m=9;for(const d of list||[]){const x=f(q,d);if(x<m)m=x}return m}
+const SAMPLE_MAX=.6; // automatic learning: a sample this far from the person's first photo is probably someone else
+function learn(p,f,manual=false){ // every confirmation = one more sample (up to 20) — recognition gets stronger
+  if(!f.desc)return false;
+  p.descriptors=p.descriptors||[];p.hu=p.hu||[];
+  if(!f.hu){if(!manual||best(p.descriptors,f.desc,dist)<.2)return false;p.descriptors.push(f.desc);if(p.descriptors.length>20)p.descriptors.splice(1,1);return true}
+  if(best(p.descriptors,f.desc,dist)<.2&&best(p.hu,f.hu,cosd)<.08)return false; // near-identical sample adds nothing
+  if(!manual&&p.descriptors.length&&dist(p.descriptors[0],f.desc)>SAMPLE_MAX+.05)return false;
+  p.descriptors.push(f.desc);p.hu.push(f.hu);
+  if(p.descriptors.length>20)p.descriptors.splice(1,1);if(p.hu.length>20)p.hu.splice(1,1);
   return true;
 }
-// רגישות: [זיהוי בטוח, זיהוי אם אין מתחרה קרוב]
-const SENS={strict:{a:.48,b:.53,label:'מחמיר'},normal:{a:.55,b:.61,label:'רגיל'},loose:{a:.6,b:.66,label:'רגיש'}};
-const SUGGEST=.72; // מתחת לזה — "אולי זה X?"
-const LEARN_MAX=.45; // לומדים לבד רק מזיהוי בטוח; אישור ידני תמיד מלמד
-const SAMPLE_MAX=.6; // דגימה רחוקה מדי מהפרצוף המקורי = כנראה מישהו אחר
+function unlearn(p,f){const a=JSON.stringify(f.desc),b=f.hu?JSON.stringify(f.hu):'-';
+  p.descriptors=(p.descriptors||[]).filter(d=>JSON.stringify(d)!==a);p.hu=(p.hu||[]).filter(d=>JSON.stringify(d)!==b)}
+// thresholds per engine (measured on a labeled test set): fa = face-api distance, hu = Human cosine distance
+const SENS={strict:{fa:.57,hu:.40,label:'מחמיר'},normal:{fa:.60,hu:.45,label:'רגיל'},loose:{fa:.62,hu:.48,label:'רגיש'}};
 function fileToCanvas(file,max){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
   im.onload=()=>{const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');
     c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c)};
@@ -348,13 +379,44 @@ function passport(src,b){ // חיתוך ביחס פספורט 35x45
   g.imageSmoothingQuality='high';g.fillStyle='#fff';g.fillRect(0,0,280,360);g.drawImage(src,cx-w/2,cy-h*.47,w,h,0,0,280,360);
   return o.toDataURL('image/jpeg',.88);
 }
-// ניתוח אחיד: זיהוי וטביעת פנים על 1600px, חיתוך התמונה מהרזולוציה המלאה
-async function analyze(hi){
+const overlap=(a,b)=>{const x1=Math.max(a.x,b.x),y1=Math.max(a.y,b.y),x2=Math.min(a.x+a.width,b.x+b.width),y2=Math.min(a.y+a.height,b.y+b.height);
+  const I=Math.max(0,x2-x1)*Math.max(0,y2-y1);return I/Math.min(a.width*a.height,b.width*b.height)};
+// find faces + fingerprint A: whole photo, then overlapping quarters for small faces at the back (quarters only ADD faces)
+async function ssdFaces(c){
+  const opt=new faceapi.SsdMobilenetv1Options({minConfidence:.45,maxResults:150}),out=[];
+  const add=(d,ox,oy,tw,th)=>{const {x,y,width:w,height:hh}=d.detection.box;
+    if(tw&&((x<2&&ox>0)||(y<2&&oy>0)||(x+w>tw-2&&ox+tw<c.width)||(y+hh>th-2&&oy+th<c.height)))return; // cut by a tile edge
+    const box={x:x+ox,y:y+oy,width:w,height:hh};if(out.some(o=>overlap(o.box,box)>.3))return;out.push({box,desc:Array.from(d.descriptor)})};
+  (await faceapi.detectAllFaces(c,opt).withFaceLandmarks().withFaceDescriptors()).forEach(d=>add(d,0,0));
+  const M=Math.max(c.width,c.height);
+  if(M>900){const T=Math.round(M*.6),xs=c.width>T?[0,c.width-T]:[0],ys=c.height>T?[0,c.height-T]:[0];
+    for(const y of ys)for(const x of xs){const w=Math.min(T,c.width),hh=Math.min(T,c.height),t=document.createElement('canvas');t.width=w;t.height=hh;
+      t.getContext('2d').drawImage(c,x,y,w,hh,0,0,w,hh);(await faceapi.detectAllFaces(t,opt).withFaceLandmarks().withFaceDescriptors()).forEach(d=>add(d,x,y,w,hh))}}
+  return out;
+}
+// fingerprint B: enlarged square crop of the face → Human (face mesh alignment + embedding)
+async function huEmb(src,b){
+  const s=Math.max(b.width,b.height)*1.7,cx=b.x+b.width/2,cy=b.y+b.height/2,t=document.createElement('canvas');t.width=t.height=256;
+  const g=t.getContext('2d');g.imageSmoothingQuality='high';g.fillStyle='#808080';g.fillRect(0,0,256,256);g.drawImage(src,cx-s/2,cy-s/2,s,s,0,0,256,256);
+  const fs=(await human.detect(t)).face.filter(f=>f.embedding&&f.embedding.length);if(!fs.length)return null;
+  const d=f=>Math.hypot(f.box[0]+f.box[2]/2-128,f.box[1]+f.box[3]/2-128);fs.sort((a,b)=>d(a)-d(b));
+  return Array.from(fs[0].embedding);
+}
+// full analysis on 1600px; boxes returned in the original photo's coordinates
+async function analyze(hi,progress){
   const k=Math.min(1,1600/Math.max(hi.width,hi.height)),c=document.createElement('canvas');
   c.width=Math.round(hi.width*k);c.height=Math.round(hi.height*k);c.getContext('2d').drawImage(hi,0,0,c.width,c.height);
-  const dets=await faceapi.detectAllFaces(c,new faceapi.SsdMobilenetv1Options({minConfidence:.45,maxResults:150})).withFaceLandmarks().withFaceDescriptors();
-  const s=hi.width/c.width;
-  return dets.map(d=>{const b=d.detection.box;return {box:{x:b.x*s,y:b.y*s,width:b.width*s,height:b.height*s},desc:Array.from(d.descriptor)}});
+  const found=await ssdFaces(c),s=hi.width/c.width;
+  for(let i=0;i<found.length;i++){if(progress)progress(i+1,found.length);try{found[i].hu=await huEmb(c,found[i].box)}catch(e){found[i].hu=null}}
+  return found.map(f=>({box:{x:f.box.x*s,y:f.box.y*s,width:f.box.width*s,height:f.box.height*s},desc:f.desc,hu:f.hu}));
+}
+// one-time upgrade: give everyone registered a fingerprint from the new engine, using their card photo
+async function upgradePeople(){
+  const todo=S.people.filter(p=>!(p.hu&&p.hu.length));if(!todo.length)return;
+  let i=0;for(const p of todo){setStatus(`משדרג את הזיהוי ${++i}/${todo.length}<span class="spin"></span>`);
+    try{const x=largest(await analyze(await imgToCanvas(p.photo)));if(x&&x.hu){p.hu=[x.hu];p.descriptors=p.descriptors||[];
+      if(best(p.descriptors,x.desc,dist)>=.2)p.descriptors.unshift(x.desc)}}catch(e){}}
+  await save();
 }
 function imgToCanvas(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);res(c)};im.onerror=rej;im.src=src})}
 const largest=a=>a.reduce((m,x)=>!m||x.box.width>m.box.width?x:m,null);
@@ -369,29 +431,28 @@ async function handleFile(file){
   try{await modelsReady}catch(e){return}
   let hi;try{hi=await fileToCanvas(file,3000)}catch(e){setStatus('');toast('לא ניתן לפתוח את התמונה');return}
   await new Promise(r=>setTimeout(r,30));
-  const found=await analyze(hi);
+  const found=await analyze(hi,(i,n)=>setStatus(`מזהה פרצופים ${i}/${n}<span class="spin"></span>`));
   if(!found.length){setStatus('');toast('לא נמצאו פרצופים בתמונה');return}
   found.sort((a,b)=>b.box.x-a.box.x); // מימין לשמאל
-  const faces=found.map(x=>({crop:passport(hi,x.box),desc:x.desc,pid:null,sug:null,d:9,skip:false,no:[]}));
+  const faces=found.map(x=>({crop:passport(hi,x.box),desc:x.desc,hu:x.hu,pid:null,skip:false,no:[]}));
   setStatus('');
   matchFaces(faces);
   const ts=(file.lastModified&&file.lastModified<=Date.now()+60000)?file.lastModified:Date.now();
   const ses={id:uid(),ts,present:[]};
-  faces.forEach(f=>{if(f.pid){const p=P(f.pid);ses.present.push(f.pid);f.prev={photo:p.photo,ts:p.photoTs};f.learned=f.d<LEARN_MAX&&learn(p,f.desc,f.d);setPhoto(p,f.crop,ts)}});
+  faces.forEach(f=>{if(f.pid){const p=P(f.pid);ses.present.push(f.pid);f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f);setPhoto(p,f.crop,ts)}});
   S.sessions.push(ses);await save();
   cur={sid:ses.id,faces};renderCapture();renderAtt();renderPeople();
 }
 function matchFaces(faces){
-  const T=SENS[S.sens]||SENS.normal,usable=S.people.filter(p=>p.descriptors&&p.descriptors.length);
-  const ranks=faces.map(f=>usable.map(p=>({p,d:minDist(f.desc,p)})).sort((a,b)=>a.d-b.d));
-  // מועמדים: בטוח, או קרוב מספיק כשאין מתחרה צמוד
+  const T=SENS[S.sens]||SENS.normal,usable=S.people.filter(p=>p.descriptors&&p.descriptors.length&&p.hu&&p.hu.length);
+  if(!usable.length)return;
   const cand=[];
-  ranks.forEach((r,i)=>r.forEach((x,j)=>{if(x.d>=T.b)return;const rival=r[j===0?1:0];
-    if(x.d<T.a||!rival||rival.d-x.d>.08)cand.push({i,p:x.p,d:x.d})}));
-  cand.sort((a,b)=>a.d-b.d);const uf=new Set(),up=new Set();
-  for(const x of cand){if(uf.has(x.i)||up.has(x.p.id))continue;uf.add(x.i);up.add(x.p.id);faces[x.i].pid=x.p.id;faces[x.i].d=x.d}
-  // הצעות לפרצופים שלא זוהו
-  faces.forEach((f,i)=>{if(f.pid)return;const s=ranks[i].find(x=>!up.has(x.p.id));if(s&&s.d<SUGGEST)f.sug=s.p.id});
+  faces.forEach((f,i)=>{if(!f.desc||!f.hu)return;
+    const A=usable.map(p=>({p,d:best(p.descriptors,f.desc,dist)})).sort((x,y)=>x.d-y.d)[0];
+    const B=usable.map(p=>({p,d:best(p.hu,f.hu,cosd)})).sort((x,y)=>x.d-y.d)[0];
+    if(A.p===B.p&&A.d<T.fa&&B.d<T.hu)cand.push({i,p:A.p,s:A.d/T.fa+B.d/T.hu})});
+  cand.sort((a,b)=>a.s-b.s);const up=new Set();
+  for(const x of cand){if(up.has(x.p.id))continue;up.add(x.p.id);faces[x.i].pid=x.p.id} // one face per person per photo
 }
 ['#fCam','#fGal'].forEach(s=>$(s).onchange=e=>{const f=e.target.files[0];e.target.value='';handleFile(f)});
 
@@ -401,7 +462,7 @@ function renderCapture(){
   const known=cur.faces.filter(f=>f.pid).length,unk=cur.faces.filter(f=>!f.pid&&!f.skip).length;
   r.innerHTML=`<div class="sechead"><h2>${fDate(ses.ts)}</h2><small>${fTime(ses.ts)}</small></div>
   <div class="chips"><span class="chip">${known} נוכחים</span>${unk?`<span class="chip o">${unk} לא מזוהים — הקישו כדי לתת שם</span>`:''}</div>
-  <div class="grid">${cur.faces.map((f,i)=>{const p=f.pid&&P(f.pid),sg=!p&&!f.skip&&f.sug&&!ses.present.includes(f.sug)&&!(f.no||[]).includes(f.sug)&&P(f.sug);
+  <div class="grid">${cur.faces.map((f,i)=>{const p=f.pid&&P(f.pid);
     return `<button class="tile ${p?'known':f.skip?'skip':'unk'}" data-i="${i}"><div class="ph"><img src="${f.crop}"></div>
     <span class="nm">${p?esc(p.first||fullName(p)):f.skip?'דולג':'מי זה?'}</span>${p&&p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`}).join('')}</div>
   <div style="margin-top:22px"><button class="btn sec full" id="doneBtn">סיום</button></div>`;
@@ -426,12 +487,11 @@ function nameSheet(i){
   const f=cur.faces[i],ses=SES(cur.sid);
   const others=S.people.filter(p=>!ses.present.includes(p.id)&&!(f.no||[]).includes(p.id)).sort(byName);
   const gsel=new Set(curGroup?[curGroup]:[]);
-  const sg=f.sug&&!ses.present.includes(f.sug)&&!(f.no||[]).includes(f.sug)&&P(f.sug);
   const draw=(vals)=>{
     openSheet(`<img class="pp" src="${f.crop}"><h2>מי זה?</h2>
-      ${sg?`<div class="sugg"><img src="${sg.photo}"><span class="n">אולי <b>${esc(fullName(sg))}</b>?</span><button class="btn pri" id="sgYes">כן, זה ${esc(sg.first||fullName(sg))}</button></div>
-      <div class="or">או אדם חדש</div>`:'<div class="meta">אדם חדש</div>'}
+      <div class="meta">התחילו להקליד — אם השם כבר רשום הוא יקפוץ</div>
       ${fieldInputs(vals)}
+      <div class="list hide" id="ac"></div>
       <div class="sub">קבוצות</div>
       <div class="gwrap" id="ng">${S.groups.map(g=>`<button class="gchip ${gsel.has(g.id)?'on':''}" data-g="${g.id}">${esc(g.name)}</button>`).join('')}<button class="gchip add" id="ngAdd">+ קבוצה</button></div>
       <div class="acts" style="margin-top:10px"><button class="btn ghost" id="af">+ הוסף שדה</button></div>
@@ -442,20 +502,27 @@ function nameSheet(i){
       <div class="acts" style="margin-top:14px"><button class="btn dan" id="sk">${f.skip?'בטל דילוג':'דלג על הפרצוף הזה'}</button></div>`);
     setTimeout(()=>{const fi=$('#ff input');if(fi&&!vals)fi.focus()},300);
     $('#af').onclick=async()=>{const v=readInputs();if(await addField())draw(v)};
+    // autocomplete: every typed word must be the start of a word in a registered name
+    const ac=()=>{const v=readInputs(),t=norm([v.first,v.last].filter(Boolean).join(' ')).split(' ').filter(Boolean),box=$('#ac');
+      const hits=t.length?others.filter(p=>{const w=norm(fullName(p)).split(' ');return t.every(x=>w.some(y=>y.startsWith(x)))}).slice(0,4):[];
+      box.classList.toggle('hide',!hits.length);
+      box.innerHTML=hits.map(p=>`<button class="li" data-id="${p.id}"><img src="${p.photo}"><span class="n">${esc(fullName(p))}</span><span class="d" style="color:var(--blue);font-weight:500">זה הוא/היא ←</span></button>`).join('');
+      box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>assignTo(P(b.dataset.id)))};
+    $('#ff').querySelectorAll('input[data-k]').forEach(i=>i.addEventListener('input',ac));if(vals)ac();
+    const assignTo=async p=>{if(!p)return;f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f,true);setPhoto(p,f.crop,ses.ts);
+      if(!ses.present.includes(p.id))ses.present.push(p.id);gsel.forEach(g=>{if(!inGroup(p,g))toggleMember(p,g)});
+      f.pid=p.id;f.skip=false;await save();closeSheet();renderAll();toast('נרשם: '+fullName(p)+' ✓')};
     $('#ng').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const g=b.dataset.g;gsel.has(g)?gsel.delete(g):gsel.add(g);b.classList.toggle('on')});
     $('#ngAdd').onclick=async()=>{const v=readInputs();const g=await newGroup();if(g){gsel.add(g.id);draw(v)}};
     $('#sv').onclick=async()=>{const v=readInputs();if(!v.first&&!v.last){toast('הזינו שם');return}
       const same=S.people.find(x=>norm(fullName(x))===norm([v.first,v.last].filter(Boolean).join(' '))&&!(f.no||[]).includes(x.id));
       if(same){const yes=await dialog({type:'confirm',title:'כבר רשום '+fullName(same),text:'זה אותו אדם? אם כן, התמונה תצטרף אליו והזיהוי שלו יתחזק.',okText:'כן, אותו אדם',noText:'לא, אדם אחר'});
-        if(yes){f.prev={photo:same.photo,ts:same.photoTs};f.learned=learn(same,f.desc,undefined,true);setPhoto(same,f.crop,ses.ts);
+        if(yes){f.prev={photo:same.photo,ts:same.photoTs};f.learned=learn(same,f,true);setPhoto(same,f.crop,ses.ts);
           if(!ses.present.includes(same.id))ses.present.push(same.id);gsel.forEach(g=>{if(!inGroup(same,g))toggleMember(same,g)});
           f.pid=same.id;f.skip=false;await save();closeSheet();renderAll();toast('נרשם: '+fullName(same)+' ✓');return}}
-      const p={id:uid(),first:v.first,last:v.last,extra:v.extra,groups:[...gsel],photo:f.crop,photoTs:ses.ts,descriptors:[f.desc],created:Date.now()};
+      const p={id:uid(),first:v.first,last:v.last,extra:v.extra,groups:[...gsel],photo:f.crop,photoTs:ses.ts,descriptors:[f.desc],hu:f.hu?[f.hu]:[],created:Date.now()};
       S.people.push(p);ses.present.push(p.id);f.pid=p.id;f.skip=false;await save();closeSheet();renderAll();toast('נשמר ✓')};
-    if($('#sgYes'))$('#sgYes').onclick=async()=>{const p=sg;f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f.desc,undefined,true);setPhoto(p,f.crop,ses.ts);ses.present.push(p.id);f.pid=p.id;f.skip=false;
-      await save();closeSheet();renderAll();toast('נרשם: '+fullName(p)+' ✓')};
-    if($('#asg'))$('#asg').onclick=async()=>{const id=$('#ex').value;if(!id)return;const p=P(id);
-      f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f.desc,undefined,true);setPhoto(p,f.crop,ses.ts);if(!ses.present.includes(id))ses.present.push(id);f.pid=id;f.skip=false;await save();closeSheet();renderAll();toast('שויך ל'+fullName(p))};
+    if($('#asg'))$('#asg').onclick=()=>{const id=$('#ex').value;if(id)assignTo(P(id))};
     $('#sk').onclick=()=>{f.skip=!f.skip;closeSheet();renderCapture()};
   };
   draw();
@@ -464,10 +531,10 @@ function nameSheet(i){
 /* ---------- person card ---------- */
 async function undoMatch(fi){
   const f=cur.faces[fi],ses=SES(cur.sid),p=f&&P(f.pid);if(!p||!ses)return;
-  if(f.learned){const s=JSON.stringify(f.desc);p.descriptors=p.descriptors.filter(d=>d!==f.desc&&JSON.stringify(d)!==s);if(!p.descriptors.length)p.descriptors=[f.desc]}
+  if(f.learned){unlearn(p,f);if(!p.descriptors.length){p.descriptors=[f.desc];p.hu=f.hu?[f.hu]:[]}}
   if(f.prev&&p.photo===f.crop){p.photo=f.prev.photo;p.photoTs=f.prev.ts}
   if(!cur.faces.some((x,i)=>i!==fi&&x.pid===p.id))ses.present=ses.present.filter(x=>x!==p.id);
-  (f.no=f.no||[]).push(p.id);f.pid=null;f.sug=null;f.learned=false;
+  (f.no=f.no||[]).push(p.id);f.pid=null;f.learned=false;
   await save();closeSheet();renderAll();setTimeout(()=>nameSheet(fi),320);
 }
 function personSheet(id,edit=false,fi=null){
@@ -492,7 +559,7 @@ function personSheet(id,edit=false,fi=null){
   if($('#newPh'))$('#newPh').onchange=e=>withCode(async()=>{const file=e.target.files[0];e.target.value='';if(!file)return;
     toast('מנתח…');try{await modelsReady;const hi=await fileToCanvas(file,3000);const x=largest(await analyze(hi));
       if(!x){toast('לא נמצא פרצוף בתמונה');return}
-      p.photo=passport(hi,x.box);p.photoTs=Date.now();p.descriptors=[x.desc];await save();renderAll();personSheet(id,true);toast('הזיהוי אופס ✓')}
+      p.photo=passport(hi,x.box);p.photoTs=Date.now();p.descriptors=[x.desc];p.hu=x.hu?[x.hu]:[];await save();renderAll();personSheet(id,true);toast('הזיהוי אופס ✓')}
     catch(err){toast('לא ניתן לנתח את התמונה')}});
   $('#af').onclick=()=>withCode(async()=>{const v=edit?readInputs():null;if(await addField()){if(v)Object.assign(p,{first:v.first,last:v.last,extra:{...p.extra,...v.extra}});personSheet(id,true)}});
   if($('#ed'))$('#ed').onclick=()=>withCode(()=>personSheet(id,true));
@@ -599,7 +666,8 @@ function exitSel(){selMode=false;sel.clear();renderPeople()}
 function renderSelBar(){
   const bar=$('#selbar');
   if(aSel&&$('#v-att').classList.contains('act')){const n=aPick.size;bar.classList.add('on');
-    bar.innerHTML=`<button class="btn sec" id="sbX">ביטול</button><button class="btn" id="sbDel" style="background:var(--danger);color:#fff" ${n?'':'disabled'}>מחיקה${n?' ('+n+')':''}</button>`;
+    bar.innerHTML=`<button class="btn sec" id="sbX">ביטול</button><button class="btn sec" id="sbEx" ${n?'':'disabled'}>ייצוא${n?' ('+n+')':''}</button><button class="btn" id="sbDel" style="background:var(--danger);color:#fff" ${n?'':'disabled'}>מחיקה${n?' ('+n+')':''}</button>`;
+    $('#sbEx').onclick=()=>openExport({sids:[...aPick]});
     $('#sbX').onclick=()=>{aSel=false;aPick.clear();renderAtt()};
     $('#sbDel').onclick=()=>withCode(async()=>{if(await deleteSessions([...aPick])){aSel=false;aPick.clear();renderAtt()}});return}
   const on=selMode&&$('#v-ppl').classList.contains('act');bar.classList.toggle('on',on);if(!on)return;
@@ -631,8 +699,8 @@ function renderAtt(){
   if(!ss.length&&aSel){aSel=false;aPick.clear()}
   $('#attHead').innerHTML=aSel
     ?`<h2>${aPick.size} נבחרו</h2><button class="lnk" id="aAll">${ss.every(s=>aPick.has(s.id))?'ביטול הכל':'בחירת הכל'}</button>`
-    :`<h2>נוכחות</h2><span>${ss.length?`<button class="lnk" id="csvBtn">ייצוא לאקסל</button> · <button class="lnk" id="aSelBtn">בחירה</button>`:''}</span>`;
-  if($('#csvBtn'))$('#csvBtn').onclick=exportCSV;
+    :`<h2>נוכחות</h2><span>${ss.length?`<button class="lnk" id="csvBtn">ייצוא</button> · <button class="lnk" id="aSelBtn">בחירה</button>`:''}</span>`;
+  if($('#csvBtn'))$('#csvBtn').onclick=()=>openExport();
   if($('#aSelBtn'))$('#aSelBtn').onclick=()=>{aSel=true;aPick.clear();renderAtt()};
   if($('#aAll'))$('#aAll').onclick=()=>{const all=ss.every(s=>aPick.has(s.id));ss.forEach(s=>all?aPick.delete(s.id):aPick.add(s.id));renderAtt()};
   renderSelBar();
@@ -672,7 +740,8 @@ function sessionSheet(sid,editDate=false){
     <div class="list">${pres.map(p=>`<div class="li"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a" data-rm="${p.id}" aria-label="הסרה">${X}</button></div>`).join('')||'<div class="li"><span class="d">אין</span></div>'}</div>
     ${abs.length?`<div class="sub">לא נכחו <small>${abs.length}</small></div>
     <div class="list">${abs.map(p=>`<div class="li off"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a add" data-ad="${p.id}" aria-label="הוספה">${PLUS}</button></div>`).join('')}</div>`:''}
-    <div class="acts" style="margin-top:18px"><button class="btn dan" id="delS">מחיקת המפגש</button></div>`);
+    <div class="acts" style="margin-top:18px"><button class="btn sec" id="exS">ייצוא המפגש</button><button class="btn dan" id="delS">מחיקת המפגש</button></div>`);
+  $('#exS').onclick=()=>openExport({sids:[sid]});
   const B=$('#sheetBody');
   if($('#sg'))$('#sg').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{sesG=b.dataset.g;const y=$('#sheet').scrollTop;sessionSheet(sid,editDate);$('#sheet').scrollTop=y});
   B.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>personSheet(b.dataset.p));
@@ -687,14 +756,99 @@ function sessionSheet(sid,editDate=false){
 
 /* ---------- export / settings ---------- */
 function download(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
-function exportCSV(){
-  if(!S.sessions.length){toast('אין נתונים לייצוא');return}
-  const ss=[...S.sessions].sort((a,b)=>a.ts-b.ts);
+/* ---------- export: filter by session / dates / group → Excel or PDF ---------- */
+const H2C='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+const JSPDF='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`)&&window._ld&&window._ld[src])return res();
+  const s=document.createElement('script');s.src=src;s.onload=()=>{(window._ld=window._ld||{})[src]=1;res()};s.onerror=rej;document.head.appendChild(s)})}
+const dateInput=ts=>dayKey(ts);
+function exportSelection(o){
+  let ss=[...S.sessions].sort((a,b)=>a.ts-b.ts);
+  if(o.mode==='pick')ss=ss.filter(s=>o.sids.includes(s.id));
+  if(o.mode==='range'){const f=o.from?new Date(o.from+'T00:00').getTime():-Infinity,t=o.to?new Date(o.to+'T23:59:59').getTime():Infinity;ss=ss.filter(s=>s.ts>=f&&s.ts<=t)}
+  let ppl=[...S.people].sort(byName);
+  if(o.group){ppl=ppl.filter(p=>inGroup(p,o.group));const ids=new Set(ppl.map(p=>p.id));ss=ss.filter(s=>s.present.some(x=>ids.has(x)))}
+  return {ss,ppl};
+}
+function filterText(o,ss){
+  const g=o.group&&G(o.group),parts=[];
+  if(o.mode==='pick'&&ss.length===1)parts.push(fDate(ss[0].ts)+' · '+fTime(ss[0].ts));
+  else if(o.mode==='pick')parts.push(ss.length+' מפגשים נבחרים');
+  else if(o.mode==='range')parts.push((o.from?fShort(new Date(o.from+'T12:00').getTime()):'…')+' – '+(o.to?fShort(new Date(o.to+'T12:00').getTime()):'…'));
+  else parts.push('כל המפגשים');
+  parts.push(g?'קבוצה: '+g.name:'כל האנשים');return parts.join(' · ');
+}
+async function deliver(blob,name){
+  const file=new File([blob],name,{type:blob.type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return}catch(e){if(e.name==='AbortError')return}}
+  download(name,blob,blob.type);
+}
+function exportExcel(o){
+  const {ss,ppl}=exportSelection(o);
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const head=['שם פרטי','שם משפחה','קבוצות',...S.fields,'סה"כ',...ss.map(s=>fShort(s.ts)+' '+fTime(s.ts))];
-  const rows=[...S.people].sort(byName).map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':'');
-    return [p.first,p.last,(p.groups||[]).map(G).filter(Boolean).map(g=>g.name).join(' / '),...S.fields.map(f=>(p.extra||{})[f]),m.filter(Boolean).length,...m]});
-  download('נוכחות-'+dayKey(Date.now())+'.csv','\ufeff'+[head,...rows].map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+  const head=['שם פרטי','שם משפחה','קבוצות',...S.fields,'נוכחויות','אחוז',...ss.map(s=>fShort(s.ts)+' '+fTime(s.ts))];
+  const rows=ppl.map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':''),n=m.filter(Boolean).length;
+    return [p.first,p.last,(p.groups||[]).map(G).filter(Boolean).map(g=>g.name).join(' / '),...S.fields.map(f=>(p.extra||{})[f]),n,ss.length?Math.round(100*n/ss.length)+'%':'',...m]});
+  const tot=['','','סה"כ נוכחים',...S.fields.map(()=>''),'','',...ss.map(s=>s.present.filter(x=>ppl.some(p=>p.id===x)).length)];
+  const csv='﻿'+[[filterText(o,ss)],[],head,...rows,tot].map(r=>r.map(q).join(',')).join('\r\n');
+  deliver(new Blob([csv],{type:'text/csv;charset=utf-8'}),'נוכחות-'+dayKey(Date.now())+'.csv');
+}
+async function exportPdf(o){
+  const {ss,ppl}=exportSelection(o);
+  try{await loadScript(H2C);await loadScript(JSPDF)}catch(e){toast('לא ניתן לטעון את יוצר ה-PDF — בדקו חיבור');return}
+  toast('מכין PDF…');
+  const W=794,H=1123,host=document.createElement('div');host.className='pdfhost';document.body.appendChild(host);
+  const pages=[];let body;const ft=filterText(o,ss);
+  const newPage=()=>{const pg=document.createElement('div');pg.className='pdfp';
+    pg.innerHTML=`<div class="pdfh"><img src="logo.png"><div><b>PO · דוח נוכחות</b><span>${esc(ft)}</span></div><i>${fShort(Date.now())}</i></div><div class="pdfb"></div><div class="pdff"></div>`;
+    host.appendChild(pg);pages.push(pg);body=pg.querySelector('.pdfb')};
+  const add=(html,again='')=>{const t=document.createElement('div');t.innerHTML=html;const n=t.firstElementChild;body.appendChild(n);
+    if(body.scrollHeight>body.clientHeight+1&&body.children.length>1){n.remove();newPage();if(again)body.insertAdjacentHTML('beforeend',again);body.appendChild(n)}};
+  newPage();
+  if(ss.length===1){ // one session: photos of who came + who didn't
+    const s=ss[0],pres=ppl.filter(p=>s.present.includes(p.id)),abs=ppl.filter(p=>!s.present.includes(p.id));
+    add(`<div class="pdft"><h1>${fDate(s.ts)}</h1><span>${fTime(s.ts)} · נכחו ${pres.length}${abs.length?' · לא נכחו '+abs.length:''}</span></div>`);
+    add(`<h2>נכחו (${pres.length})</h2>`);
+    for(let i=0;i<pres.length;i+=6)add(`<div class="pdfg">${pres.slice(i,i+6).map(p=>`<div class="pdfc"><img src="${p.photo}"><b>${esc(p.first||'')}</b><span>${esc(p.last||'')}</span></div>`).join('')}</div>`,`<h2>נכחו — המשך</h2>`);
+    if(abs.length){add(`<h2>לא נכחו (${abs.length})</h2>`);for(let i=0;i<abs.length;i+=4)add(`<div class="pdfa">${abs.slice(i,i+4).map(p=>`<div><img src="${p.photo}">${esc(fullName(p))}</div>`).join('')}</div>`,`<h2>לא נכחו — המשך</h2>`)}
+  }else{ // several sessions: table
+    const many=ss.length>12,cols=many?'1.6fr .7fr .6fr .9fr':`1.5fr repeat(${ss.length},minmax(0,1fr)) .55fr .5fr`;
+    add(`<div class="pdft"><h1>סיכום נוכחות</h1><span>${ss.length} מפגשים · ${ppl.length} אנשים${ss.length?' · '+fShort(ss[0].ts)+' – '+fShort(ss[ss.length-1].ts):''}</span></div>`);
+    const th=`<div class="pdfr th" style="grid-template-columns:${cols}"><div>שם</div>${many?'<div>נוכחויות</div><div>אחוז</div><div>אחרונה</div>':ss.map(s=>`<div>${new Date(s.ts).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}<small>${fTime(s.ts)}</small></div>`).join('')+'<div>סה"כ</div><div>%</div>'}</div>`;
+    add(th);
+    ppl.forEach((p,i)=>{const at=ss.filter(s=>s.present.includes(p.id)),n=at.length,pc=ss.length?Math.round(100*n/ss.length):0;
+      add(`<div class="pdfr ${i%2?'z':''}" style="grid-template-columns:${cols}"><div class="nm"><img src="${p.photo}">${esc(fullName(p))}</div>${many
+        ?`<div>${n}</div><div>${pc}%</div><div>${n?fShort(at[n-1].ts):'—'}</div>`
+        :ss.map(s=>`<div>${s.present.includes(p.id)?'<b class="v">✓</b>':'<span class="x">·</span>'}</div>`).join('')+`<div><b>${n}</b></div><div>${pc}%</div>`}</div>`,th)});
+    if(!many)add(`<div class="pdfr tf" style="grid-template-columns:${cols}"><div>נוכחים במפגש</div>${ss.map(s=>`<div>${s.present.filter(x=>ppl.some(p=>p.id===x)).length}</div>`).join('')}<div></div><div></div></div>`,th);
+  }
+  pages.forEach((pg,i)=>pg.querySelector('.pdff').textContent=`עמוד ${i+1} מתוך ${pages.length}`);
+  await Promise.all([...host.querySelectorAll('img')].map(im=>im.complete?0:new Promise(r=>{im.onload=im.onerror=r})));
+  const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4',compress:true});
+  for(let i=0;i<pages.length;i++){const cv=await html2canvas(pages[i],{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+    if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',.9),'JPEG',0,0,210,297)}
+  host.remove();
+  await deliver(pdf.output('blob'),(ss.length===1?'נוכחות-'+dayKey(ss[0].ts):'נוכחות-'+dayKey(Date.now()))+'.pdf');
+}
+function openExport(preset){
+  const o={mode:preset&&preset.sids?'pick':'all',sids:preset&&preset.sids||[],from:'',to:'',group:'',fmt:preset&&preset.sids&&preset.sids.length===1?'pdf':'xlsx'};
+  const ss=[...S.sessions].sort((a,b)=>a.ts-b.ts);if(ss.length){o.from=dayKey(ss[0].ts);o.to=dayKey(ss[ss.length-1].ts)}
+  const chip=(id,on,label)=>`<button class="gchip ${on?'on':''}" data-v="${id}">${label}</button>`;
+  const draw=()=>{
+    const {ss:sel,ppl}=exportSelection(o);
+    openSheet(`<h2 style="margin-top:6px">ייצוא</h2><div class="meta">בחרו מה לייצא ובאיזה פורמט</div>
+      <div class="sub">מפגשים</div><div class="gwrap" id="exM">${o.sids.length?chip('pick',o.mode==='pick',o.sids.length===1?'המפגש הזה':o.sids.length+' נבחרים'):''}${chip('all',o.mode==='all','הכל')}${chip('range',o.mode==='range','טווח תאריכים')}</div>
+      ${o.mode==='range'?`<div class="fl" style="margin-top:10px"><div class="fr"><label>מתאריך</label><input type="date" id="exF" value="${o.from}"></div><div class="fr"><label>עד תאריך</label><input type="date" id="exT" value="${o.to}"></div></div>`:''}
+      <div class="sub">אנשים</div><div class="gwrap" id="exG">${chip('',!o.group,'כולם')}${S.groups.map(g=>chip(g.id,o.group===g.id,esc(g.name))).join('')}</div>
+      <div class="sub">פורמט</div><div class="gwrap" id="exP">${chip('xlsx',o.fmt==='xlsx','אקסל')}${chip('pdf',o.fmt==='pdf','PDF')}</div>
+      <div class="sugg" style="margin-top:18px"><span class="n">${sel.length?`<b>${sel.length}</b> מפגשים · <b>${ppl.length}</b> אנשים`:'אין מפגשים שמתאימים לסינון'}<br><small style="color:var(--mute)">${esc(filterText(o,sel))}${o.fmt==='pdf'&&sel.length===1?' · עם תמונות':''}</small></span></div>
+      <button class="btn pri full" id="exGo" ${sel.length?'':'disabled'} style="margin-top:12px">ייצוא ל${o.fmt==='pdf'?'-PDF':'אקסל'}</button>`);
+    const bind=(id,fn)=>$(id).querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{fn(b.dataset.v);draw()});
+    bind('#exM',v=>o.mode=v);bind('#exG',v=>o.group=v);bind('#exP',v=>o.fmt=v);
+    if($('#exF')){$('#exF').onchange=e=>{o.from=e.target.value;draw()};$('#exT').onchange=e=>{o.to=e.target.value;draw()}}
+    $('#exGo').onclick=async()=>{const b=$('#exGo');b.disabled=true;b.textContent='מכין…';try{o.fmt==='pdf'?await exportPdf(o):exportExcel(o)}finally{closeSheet()}};
+  };
+  draw();
 }
 $('#setBtn').onclick=()=>{
   openSheet(`<h2 style="margin-top:6px">הגדרות</h2><div class="meta">${S.people.length} אנשים · ${S.sessions.length} מפגשים</div>
@@ -705,7 +859,7 @@ $('#setBtn').onclick=()=>{
       <button class="li" id="sCode"><span class="n">שינוי קוד</span></button>
       <button class="li" id="sExp"><span class="n">גיבוי — הורדת קובץ</span></button>
       <button class="li" id="sImp"><span class="n">שחזור מגיבוי</span></button>
-      <button class="li" id="sCsv"><span class="n">ייצוא נוכחות לאקסל</span></button>
+      <button class="li" id="sCsv"><span class="n">ייצוא נוכחות — אקסל / PDF</span></button>
     </div>
     <div class="acts" style="margin-top:18px"><button class="btn dan" id="sWipe">מחיקת כל הנתונים</button></div>
     <p style="color:var(--mute);font-size:12px;text-align:center;margin-top:16px">הכל נשמר רק במכשיר הזה. מומלץ לגבות מדי פעם.</p>`);
@@ -718,13 +872,13 @@ $('#setBtn').onclick=()=>{
     const ok=await dialog({title:'לבנות את הזיהוי מחדש?',text:'כל אדם יזוהה מעכשיו לפי התמונה בכרטיס שלו. כדאי לוודא קודם שהתמונות נכונות. הקלידו "כן" לאישור',check:v=>v==='כן'});if(ok===null)return;
     try{await modelsReady}catch(e){toast('מנוע הזיהוי לא נטען');return}
     let good=0;const bad=[];
-    for(const p of S.people){try{const x=largest(await analyze(await imgToCanvas(p.photo)));if(x){p.descriptors=[x.desc];good++}else bad.push(fullName(p))}catch(e){bad.push(fullName(p))}}
+    for(const p of S.people){try{const x=largest(await analyze(await imgToCanvas(p.photo)));if(x&&x.hu){p.descriptors=[x.desc];p.hu=[x.hu];good++}else bad.push(fullName(p))}catch(e){bad.push(fullName(p))}}
     await save();closeSheet();renderAll();
     toast(bad.length?`${good} עודכנו · ${bad.length} ללא פרצוף ברור`:`הזיהוי נבנה מחדש ל-${good} ✓`)});
   $('#sCode').onclick=()=>withCode(async()=>{const n=await dialog({title:'קוד חדש',text:'4 ספרות לפחות',type:'text',check:v=>/^\d{4,}$/.test(v)});if(n){S.code=n;await save();toast('הקוד עודכן ✓')}});
   $('#sExp').onclick=()=>download('גיבוי-נוכחות-'+dayKey(Date.now())+'.json',JSON.stringify(S),'application/json');
   $('#sImp').onclick=()=>withCode(()=>$('#fImp').click());
-  $('#sCsv').onclick=exportCSV;
+  $('#sCsv').onclick=()=>openExport();
   $('#sWipe').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק הכל?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
     S={people:[],fields:[],sessions:[],groups:[],code:S.code};curGroup='';sesG='';cur=null;await save();closeSheet();renderAll();toast('נמחק')});
 };
@@ -745,7 +899,7 @@ function migrate(){S.groups=S.groups||[];S.sens=S.sens||'normal';S.people.forEac
 // איחוד כפילויות: אותו שם = אותו אדם
 function dupGroups(){const m={};S.people.forEach(p=>{const k=norm(fullName(p));if(k&&k!=='ללא שם')(m[k]=m[k]||[]).push(p)});return Object.values(m).filter(a=>a.length>1)}
 function mergeInto(keep,d){
-  const all=[...keep.descriptors,...d.descriptors];keep.descriptors=all.length>20?[all[0],...all.slice(-19)]:all;
+  const cap=a=>a.length>20?[a[0],...a.slice(-19)]:a;keep.descriptors=cap([...(keep.descriptors||[]),...(d.descriptors||[])]);keep.hu=cap([...(keep.hu||[]),...(d.hu||[])]);
   keep.groups=[...new Set([...(keep.groups||[]),...(d.groups||[])])];
   keep.extra={...(d.extra||{}),...Object.fromEntries(Object.entries(keep.extra||{}).filter(([k,v])=>v))};
   if((d.photoTs||0)>(keep.photoTs||0)){keep.photo=d.photo;keep.photoTs=d.photoTs}

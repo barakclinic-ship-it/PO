@@ -1,5 +1,5 @@
 // PO service worker — בכל עדכון של האפליקציה מעלים את מספר הגרסה
-const VERSION = 'po-v7';
+const VERSION = 'po-v9';
 const MODELS = 'po-models-v1'; // מנוע הזיהוי (cdn.jsdelivr) — נשמר כדי שהאפליקציה תעלה מהר וגם בלי רשת
 const APP_FILES = ['./', 'index.html', 'manifest.webmanifest', 'logo.png',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
@@ -20,7 +20,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
 
   // מנוע הזיהוי והמודלים: קודם מה-cache, ואם אין — מהרשת ושומרים
-  if (url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('@vladmandic/face-api')) {
+  if ((url.hostname === 'cdn.jsdelivr.net' && url.pathname.includes('@vladmandic/')) || url.hostname === 'cdnjs.cloudflare.com') {
     e.respondWith(caches.open(MODELS).then(c => c.match(req).then(hit => hit ||
       fetch(req).then(res => { if (res.ok) c.put(req, res.clone()); return res; }))));
     return;
