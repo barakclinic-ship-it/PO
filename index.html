@@ -311,13 +311,17 @@ function loadModels(){
 function dist(a,b){let s=0;for(let i=0;i<128;i++){const d=a[i]-b[i];s+=d*d}return Math.sqrt(s)}
 function minDist(desc,p){let m=9;for(const d of p.descriptors){const x=dist(desc,d);if(x<m)m=x}return m}
 function learn(p,desc,d){ // שומר דוגמאות מגוונות כדי לשפר זיהוי עם הזמן
-  if(d!==undefined&&d<0.2)return;
+  if(d!==undefined&&d<0.2)return false;
+  if(p.descriptors.length&&dist(p.descriptors[0],desc)>SAMPLE_MAX+.05)return false;
   p.descriptors.push(desc);
   if(p.descriptors.length>20)p.descriptors.splice(1,1);
+  return true;
 }
 // רגישות: [זיהוי בטוח, זיהוי אם אין מתחרה קרוב]
 const SENS={strict:{a:.48,b:.53,label:'מחמיר'},normal:{a:.55,b:.61,label:'רגיל'},loose:{a:.6,b:.66,label:'רגיש'}};
 const SUGGEST=.72; // מתחת לזה — "אולי זה X?"
+const LEARN_MAX=.45; // לומדים לבד רק מזיהוי בטוח; אישור ידני תמיד מלמד
+const SAMPLE_MAX=.6; // דגימה רחוקה מדי מהפרצוף המקורי = כנראה מישהו אחר
 function fileToCanvas(file,max){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
   im.onload=()=>{const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');
     c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c)};
@@ -328,14 +332,16 @@ function passport(src,b){ // חיתוך ביחס פספורט 35x45
   g.imageSmoothingQuality='high';g.fillStyle='#fff';g.fillRect(0,0,280,360);g.drawImage(src,cx-w/2,cy-h*.47,w,h,0,0,280,360);
   return o.toDataURL('image/jpeg',.88);
 }
-// פרצוף קטן: חותכים, מגדילים ומנתחים שוב — טביעת פנים מדויקת יותר
-async function refineDesc(src,b){
-  const s=Math.max(b.width,b.height)*1.9,cx=b.x+b.width/2,cy=b.y+b.height/2;
-  const c=document.createElement('canvas');c.width=c.height=320;const g=c.getContext('2d');
-  g.imageSmoothingQuality='high';g.drawImage(src,cx-s/2,cy-s/2,s,s,0,0,320,320);
-  const r=await faceapi.detectSingleFace(c,new faceapi.SsdMobilenetv1Options({minConfidence:.3})).withFaceLandmarks().withFaceDescriptor();
-  return r?Array.from(r.descriptor):null;
+// ניתוח אחיד: זיהוי וטביעת פנים על 1600px, חיתוך התמונה מהרזולוציה המלאה
+async function analyze(hi){
+  const k=Math.min(1,1600/Math.max(hi.width,hi.height)),c=document.createElement('canvas');
+  c.width=Math.round(hi.width*k);c.height=Math.round(hi.height*k);c.getContext('2d').drawImage(hi,0,0,c.width,c.height);
+  const dets=await faceapi.detectAllFaces(c,new faceapi.SsdMobilenetv1Options({minConfidence:.45,maxResults:150})).withFaceLandmarks().withFaceDescriptors();
+  const s=hi.width/c.width;
+  return dets.map(d=>{const b=d.detection.box;return {box:{x:b.x*s,y:b.y*s,width:b.width*s,height:b.height*s},desc:Array.from(d.descriptor)}});
 }
+function imgToCanvas(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);res(c)};im.onerror=rej;im.src=src})}
+const largest=a=>a.reduce((m,x)=>!m||x.box.width>m.box.width?x:m,null);
 
 /* ---------- capture ---------- */
 let cur=null; // {sid, faces:[{crop,desc,pid,sug,skip}]}
@@ -345,22 +351,17 @@ async function handleFile(file){
   $('#result').innerHTML='';
   setStatus('מזהה פרצופים<span class="spin"></span>');
   try{await modelsReady}catch(e){return}
-  let c;try{c=await fileToCanvas(file,3000)}catch(e){setStatus('');toast('לא ניתן לפתוח את התמונה');return}
+  let hi;try{hi=await fileToCanvas(file,3000)}catch(e){setStatus('');toast('לא ניתן לפתוח את התמונה');return}
   await new Promise(r=>setTimeout(r,30));
-  const dets=await faceapi.detectAllFaces(c,new faceapi.SsdMobilenetv1Options({minConfidence:.4,maxResults:150})).withFaceLandmarks().withFaceDescriptors();
-  if(!dets.length){setStatus('');toast('לא נמצאו פרצופים בתמונה');return}
-  dets.sort((a,b)=>b.detection.box.x-a.detection.box.x); // מימין לשמאל
-  const faces=[];
-  for(let i=0;i<dets.length;i++){
-    const d=dets[i],b=d.detection.box;let desc=Array.from(d.descriptor);
-    if(b.width<140){setStatus(`מנתח פרצופים ${i+1}/${dets.length}<span class="spin"></span>`);try{const r=await refineDesc(c,b);if(r)desc=r}catch(e){}}
-    faces.push({crop:passport(c,b),desc,pid:null,sug:null,d:9,skip:false});
-  }
+  const found=await analyze(hi);
+  if(!found.length){setStatus('');toast('לא נמצאו פרצופים בתמונה');return}
+  found.sort((a,b)=>b.box.x-a.box.x); // מימין לשמאל
+  const faces=found.map(x=>({crop:passport(hi,x.box),desc:x.desc,pid:null,sug:null,d:9,skip:false,no:[]}));
   setStatus('');
   matchFaces(faces);
   const ts=(file.lastModified&&file.lastModified<=Date.now()+60000)?file.lastModified:Date.now();
   const ses={id:uid(),ts,present:[]};
-  faces.forEach(f=>{if(f.pid){const p=P(f.pid);ses.present.push(f.pid);learn(p,f.desc,f.d);setPhoto(p,f.crop,ts)}});
+  faces.forEach(f=>{if(f.pid){const p=P(f.pid);ses.present.push(f.pid);f.prev={photo:p.photo,ts:p.photoTs};f.learned=f.d<LEARN_MAX&&learn(p,f.desc,f.d);setPhoto(p,f.crop,ts)}});
   S.sessions.push(ses);await save();
   cur={sid:ses.id,faces};renderCapture();renderAtt();renderPeople();
 }
@@ -384,11 +385,11 @@ function renderCapture(){
   const known=cur.faces.filter(f=>f.pid).length,unk=cur.faces.filter(f=>!f.pid&&!f.skip).length;
   r.innerHTML=`<div class="sechead"><h2>${fDate(ses.ts)}</h2><small>${fTime(ses.ts)}</small></div>
   <div class="chips"><span class="chip">${known} נוכחים</span>${unk?`<span class="chip o">${unk} לא מזוהים — הקישו כדי לתת שם</span>`:''}</div>
-  <div class="grid">${cur.faces.map((f,i)=>{const p=f.pid&&P(f.pid),sg=!p&&!f.skip&&f.sug&&!ses.present.includes(f.sug)&&P(f.sug);
+  <div class="grid">${cur.faces.map((f,i)=>{const p=f.pid&&P(f.pid),sg=!p&&!f.skip&&f.sug&&!ses.present.includes(f.sug)&&!(f.no||[]).includes(f.sug)&&P(f.sug);
     return `<button class="tile ${p?'known':f.skip?'skip':'unk'}" data-i="${i}"><div class="ph"><img src="${f.crop}"></div>
     <span class="nm">${p?esc(p.first||fullName(p)):f.skip?'דולג':sg?'אולי '+esc(sg.first||fullName(sg))+'?':'מי זה?'}</span>${p&&p.last?`<span class="ln">${esc(p.last)}</span>`:''}</button>`}).join('')}</div>
   <div style="margin-top:22px"><button class="btn sec full" id="doneBtn">סיום</button></div>`;
-  r.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{const f=cur.faces[+t.dataset.i];if(f.pid)personSheet(f.pid);else nameSheet(+t.dataset.i)});
+  r.querySelectorAll('.tile').forEach(t=>t.onclick=()=>{const f=cur.faces[+t.dataset.i];if(f.pid)personSheet(f.pid,false,+t.dataset.i);else nameSheet(+t.dataset.i)});
   $('#doneBtn').onclick=()=>{purgeEmpty();cur=null;renderCapture();toast('הנוכחות נשמרה')};
 }
 function purgeEmpty(){const n=S.sessions.length;S.sessions=S.sessions.filter(s=>s.present.length||(cur&&s.id===cur.sid&&cur.faces.some(f=>!f.pid&&!f.skip)));if(S.sessions.length!==n){save();renderAtt()}}
@@ -407,9 +408,9 @@ async function addField(){const n=await dialog({title:'שדה חדש',text:'הש
 
 function nameSheet(i){
   const f=cur.faces[i],ses=SES(cur.sid);
-  const others=S.people.filter(p=>!ses.present.includes(p.id)).sort(byName);
+  const others=S.people.filter(p=>!ses.present.includes(p.id)&&!(f.no||[]).includes(p.id)).sort(byName);
   const gsel=new Set(curGroup?[curGroup]:[]);
-  const sg=f.sug&&!ses.present.includes(f.sug)&&P(f.sug);
+  const sg=f.sug&&!ses.present.includes(f.sug)&&!(f.no||[]).includes(f.sug)&&P(f.sug);
   const draw=(vals)=>{
     openSheet(`<img class="pp" src="${f.crop}"><h2>מי זה?</h2>
       ${sg?`<div class="sugg"><img src="${sg.photo}"><span class="n">אולי <b>${esc(fullName(sg))}</b>?</span><button class="btn pri" id="sgYes">כן, זה ${esc(sg.first||fullName(sg))}</button></div>
@@ -430,22 +431,31 @@ function nameSheet(i){
     $('#sv').onclick=async()=>{const v=readInputs();if(!v.first&&!v.last){toast('הזינו שם');return}
       const p={id:uid(),first:v.first,last:v.last,extra:v.extra,groups:[...gsel],photo:f.crop,photoTs:ses.ts,descriptors:[f.desc],created:Date.now()};
       S.people.push(p);ses.present.push(p.id);f.pid=p.id;f.skip=false;await save();closeSheet();renderAll();toast('נשמר ✓')};
-    if($('#sgYes'))$('#sgYes').onclick=async()=>{const p=sg;learn(p,f.desc);setPhoto(p,f.crop,ses.ts);ses.present.push(p.id);f.pid=p.id;f.skip=false;
+    if($('#sgYes'))$('#sgYes').onclick=async()=>{const p=sg;f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f.desc);setPhoto(p,f.crop,ses.ts);ses.present.push(p.id);f.pid=p.id;f.skip=false;
       await save();closeSheet();renderAll();toast('נרשם: '+fullName(p)+' ✓')};
     if($('#asg'))$('#asg').onclick=async()=>{const id=$('#ex').value;if(!id)return;const p=P(id);
-      learn(p,f.desc);setPhoto(p,f.crop,ses.ts);ses.present.push(id);f.pid=id;f.skip=false;await save();closeSheet();renderAll();toast('שויך ל'+fullName(p))};
+      f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f.desc);setPhoto(p,f.crop,ses.ts);ses.present.push(id);f.pid=id;f.skip=false;await save();closeSheet();renderAll();toast('שויך ל'+fullName(p))};
     $('#sk').onclick=()=>{f.skip=!f.skip;closeSheet();renderCapture()};
   };
   draw();
 }
 
 /* ---------- person card ---------- */
-function personSheet(id,edit=false){
+async function undoMatch(fi){
+  const f=cur.faces[fi],ses=SES(cur.sid),p=f&&P(f.pid);if(!p||!ses)return;
+  if(f.learned){const s=JSON.stringify(f.desc);p.descriptors=p.descriptors.filter(d=>d!==f.desc&&JSON.stringify(d)!==s);if(!p.descriptors.length)p.descriptors=[f.desc]}
+  if(f.prev&&p.photo===f.crop){p.photo=f.prev.photo;p.photoTs=f.prev.ts}
+  if(!cur.faces.some((x,i)=>i!==fi&&x.pid===p.id))ses.present=ses.present.filter(x=>x!==p.id);
+  (f.no=f.no||[]).push(p.id);f.pid=null;f.sug=null;f.learned=false;
+  await save();closeSheet();renderAll();setTimeout(()=>nameSheet(fi),320);
+}
+function personSheet(id,edit=false,fi=null){
   const p=P(id);if(!p)return;
   const att=S.sessions.filter(s=>s.present.includes(id)).sort((a,b)=>b.ts-a.ts);
   const rows=[['שם פרטי',p.first],['שם משפחה',p.last],...S.fields.map(f=>[f,(p.extra||{})[f]])];
   openSheet(`<img class="pp" src="${p.photo}"><h2>${esc(fullName(p))}</h2>
     <div class="meta">${att.length} נוכחויות${att.length?' · אחרונה '+fShort(att[0].ts):''}</div>
+    ${fi!==null&&cur&&cur.faces[fi]&&cur.faces[fi].pid===id?`<div class="sugg"><img src="${cur.faces[fi].crop}"><span class="n">זוהה בצילום הזה</span><button class="btn sec" id="notMe" style="color:var(--danger)">זה לא ${esc(p.first||fullName(p))}</button></div>`:''}
     ${edit?fieldInputs(p):`<div class="fl">${rows.map(([l,v])=>`<div class="fr"><label>${esc(l)}</label><div class="v">${esc(v)||'<span style="color:#c3d3df">—</span>'}</div></div>`).join('')}</div>`}
     <div class="acts">${edit
       ?`<button class="btn ghost" id="af">+ הוסף שדה</button><button class="btn pri" id="sv">שמירה</button>`
@@ -454,7 +464,14 @@ function personSheet(id,edit=false){
     <div class="gwrap" id="pg">${S.groups.map(g=>`<button class="gchip ${(p.groups||[]).includes(g.id)?'on':''}" data-g="${g.id}">${esc(g.name)}</button>`).join('')}<button class="gchip add" id="pgAdd">+ קבוצה</button></div>
     <div class="sub">נוכחות <small>${att.length}</small></div>
     ${att.length?`<div class="list">${att.map(s=>`<button class="li" data-s="${s.id}"><span class="n">${fDate(s.ts)}</span><span class="d">${fTime(s.ts)}</span></button>`).join('')}</div>`:'<div class="empty" style="padding:16px">אין עדיין נוכחות</div>'}
-    ${edit?`<div class="acts" style="margin-top:18px"><button class="btn dan" id="del">מחיקת האדם</button></div>`:''}`);
+    ${edit?`<div class="list" style="margin-top:18px"><label class="li" style="cursor:pointer"><span class="n">תמונה חדשה לזיהוי<br><small style="color:var(--mute)">מאפס את הזיהוי של ${esc(p.first||fullName(p))} לפי תמונה אחת ברורה</small></span><input type="file" accept="image/*" class="hide" id="newPh"></label></div>
+    <div class="acts" style="margin-top:18px"><button class="btn dan" id="del">מחיקת האדם</button></div>`:''}`);
+  if($('#notMe'))$('#notMe').onclick=()=>undoMatch(fi);
+  if($('#newPh'))$('#newPh').onchange=e=>withCode(async()=>{const file=e.target.files[0];e.target.value='';if(!file)return;
+    toast('מנתח…');try{await modelsReady;const hi=await fileToCanvas(file,3000);const x=largest(await analyze(hi));
+      if(!x){toast('לא נמצא פרצוף בתמונה');return}
+      p.photo=passport(hi,x.box);p.photoTs=Date.now();p.descriptors=[x.desc];await save();renderAll();personSheet(id,true);toast('הזיהוי אופס ✓')}
+    catch(err){toast('לא ניתן לנתח את התמונה')}});
   $('#af').onclick=()=>withCode(async()=>{const v=edit?readInputs():null;if(await addField()){if(v)Object.assign(p,{first:v.first,last:v.last,extra:{...p.extra,...v.extra}});personSheet(id,true)}});
   if($('#ed'))$('#ed').onclick=()=>withCode(()=>personSheet(id,true));
   if($('#sv'))$('#sv').onclick=()=>withCode(async()=>{const v=readInputs();p.first=v.first;p.last=v.last;p.extra={...p.extra,...v.extra};await save();renderAll();personSheet(id);toast('עודכן ✓')});
@@ -594,6 +611,7 @@ $('#setBtn').onclick=()=>{
   openSheet(`<h2 style="margin-top:6px">הגדרות</h2><div class="meta">${S.people.length} אנשים · ${S.sessions.length} מפגשים</div>
     <div class="list">
       <div class="li"><span class="n">רגישות זיהוי</span><span class="gwrap" id="sSens">${Object.entries(SENS).map(([k,v])=>`<button class="gchip ${(S.sens||'normal')===k?'on':''}" data-k="${k}">${v.label}</button>`).join('')}</span></div>
+      <button class="li" id="sRebuild"><span class="n">בניית הזיהוי מחדש<br><small style="color:var(--mute)">לפי התמונה שבכרטיס של כל אחד</small></span></button>
       <button class="li" id="sCode"><span class="n">שינוי קוד</span></button>
       <button class="li" id="sExp"><span class="n">גיבוי — הורדת קובץ</span></button>
       <button class="li" id="sImp"><span class="n">שחזור מגיבוי</span></button>
@@ -602,6 +620,13 @@ $('#setBtn').onclick=()=>{
     <div class="acts" style="margin-top:18px"><button class="btn dan" id="sWipe">מחיקת כל הנתונים</button></div>
     <p style="color:var(--mute);font-size:12px;text-align:center;margin-top:16px">הכל נשמר רק במכשיר הזה. מומלץ לגבות מדי פעם.</p>`);
   $('#sSens').querySelectorAll('[data-k]').forEach(x=>x.onclick=()=>withCode(async()=>{S.sens=x.dataset.k;await save();$('#sSens').querySelectorAll('[data-k]').forEach(y=>y.classList.toggle('on',y===x));toast('רגישות: '+SENS[S.sens].label)}));
+  $('#sRebuild').onclick=()=>withCode(async()=>{
+    const ok=await dialog({title:'לבנות את הזיהוי מחדש?',text:'כל אדם יזוהה מעכשיו לפי התמונה בכרטיס שלו. כדאי לוודא קודם שהתמונות נכונות. הקלידו "כן" לאישור',check:v=>v==='כן'});if(ok===null)return;
+    try{await modelsReady}catch(e){toast('מנוע הזיהוי לא נטען');return}
+    let good=0;const bad=[];
+    for(const p of S.people){try{const x=largest(await analyze(await imgToCanvas(p.photo)));if(x){p.descriptors=[x.desc];good++}else bad.push(fullName(p))}catch(e){bad.push(fullName(p))}}
+    await save();closeSheet();renderAll();
+    toast(bad.length?`${good} עודכנו · ${bad.length} ללא פרצוף ברור`:`הזיהוי נבנה מחדש ל-${good} ✓`)});
   $('#sCode').onclick=()=>withCode(async()=>{const n=await dialog({title:'קוד חדש',text:'4 ספרות לפחות',type:'text',check:v=>/^\d{4,}$/.test(v)});if(n){S.code=n;await save();toast('הקוד עודכן ✓')}});
   $('#sExp').onclick=()=>download('גיבוי-נוכחות-'+dayKey(Date.now())+'.json',JSON.stringify(S),'application/json');
   $('#sImp').onclick=()=>withCode(()=>$('#fImp').click());
@@ -621,7 +646,8 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   window.scrollTo(0,0);
 });
 function renderAll(){renderCapture();renderPeople();renderAtt()}
-function migrate(){S.groups=S.groups||[];S.sens=S.sens||'normal';S.people.forEach(p=>{p.groups=p.groups||[];if(!p.photoTs)p.photoTs=p.created||0})}
+function migrate(){S.groups=S.groups||[];S.sens=S.sens||'normal';S.people.forEach(p=>{p.groups=p.groups||[];if(!p.photoTs)p.photoTs=p.created||0;
+  if(p.descriptors&&p.descriptors.length>1){const o=p.descriptors[0];p.descriptors=p.descriptors.filter((d,i)=>i===0||dist(o,d)<=SAMPLE_MAX)}})}
 
 /* ---------- install / share ---------- */
 let deferredPrompt=null;
