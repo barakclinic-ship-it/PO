@@ -223,6 +223,7 @@ nav button.act{color:var(--blue)}
       </div>
     </div>
     <div class="status" id="status"></div>
+    <div class="status" id="bgStatus" style="font-size:12px;margin-top:-6px"></div>
     <div id="result"></div>
   </section>
 
@@ -333,27 +334,47 @@ $('#lockBtn').onclick=()=>{if(unlocked){lock();toast('ננעל')}else withCode((
 // a name is given only when BOTH point to the same person
 const HUMAN_URL='https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.esm.js';
 const HUMAN_MODELS='https://cdn.jsdelivr.net/npm/@vladmandic/human-models@3.0.4/models/';
-let modelsReady,human=null;
+let modelsReady,humanReady=null,human=null,humanOK=false,humanWaited=false;
+const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+function setBg(t){const e=$('#bgStatus');if(e)e.innerHTML=t||''}
+// engine 1 (face-api): needed for everything — the app is usable as soon as it is ready
 function loadModels(){
   modelsReady=(async()=>{
     if(typeof faceapi==='undefined')throw new Error('lib');
     setStatus('טוען מנוע זיהוי<span class="spin"></span>');
     try{await faceapi.tf.setBackend('webgl')}catch(e){}
     await faceapi.tf.ready();
-    const [mod]=await Promise.all([import(HUMAN_URL),faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
-    human=new mod.Human({backend:'webgl',modelBasePath:HUMAN_MODELS,cacheSensitivity:0,debug:false,
-      face:{enabled:true,detector:{rotation:true,maxDetected:3,minConfidence:.2},mesh:{enabled:true},iris:{enabled:false},emotion:{enabled:false},
-        antispoof:{enabled:false},liveness:{enabled:false},description:{enabled:true}},
-      body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:false},segmentation:{enabled:false}});
-    await human.load();
-    await upgradePeople();
+    await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
     setStatus('');
   })();
-  modelsReady.catch(()=>setStatus('לא ניתן לטעון את מנוע הזיהוי — בדקו חיבור לאינטרנט'));
+  modelsReady.then(startHuman).catch(()=>setStatus('לא ניתן לטעון את מנוע הזיהוי — בדקו חיבור לאינטרנט'));
+}
+// engine 2 (Human): loads in the background (both engines share one TensorFlow engine on the GPU).
+// every step has a time limit — if it fails, the app keeps working with engine 1 alone in strict mode.
+function startHuman(){
+  humanReady=(async()=>{
+    setBg('מכין מנוע זיהוי שני<span class="spin"></span>');
+    let mod;try{mod=await withTimeout(import(HUMAN_URL),90000)}catch(e){setBg('');return}
+    {
+      try{
+        human=new mod.Human({backend:'webgl',modelBasePath:HUMAN_MODELS,cacheSensitivity:0,debug:false,filter:{enabled:false},
+          face:{enabled:true,detector:{rotation:true,maxDetected:3,minConfidence:.2},mesh:{enabled:true},iris:{enabled:false},emotion:{enabled:false},
+            antispoof:{enabled:false},liveness:{enabled:false},description:{enabled:true}},
+          body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:false},segmentation:{enabled:false}});
+        await withTimeout(human.load(),120000);
+        const t=document.createElement('canvas');t.width=t.height=256;t.getContext('2d').fillRect(0,0,256,256);
+        await withTimeout(human.detect(t),120000); // first run (warm-up) is the slow one on phones
+        humanOK=true;
+      }catch(e){human=null;humanOK=false}
+    }
+    setBg('');
+    if(humanOK)upgradePeople();
+  })();
 }
 function dist(a,b){let s=0;for(let i=0;i<128;i++){const d=a[i]-b[i];s+=d*d}return Math.sqrt(s)}
 function cosd(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i]}return 1-d/Math.sqrt(na*nb)}
 function best(list,q,f){let m=9;for(const d of list||[]){const x=f(q,d);if(x<m)m=x}return m}
+const STRICT1=.5; // when only engine 1 is available: strict threshold + clear gap from the runner-up
 const SAMPLE_MAX=.6; // automatic learning: a sample this far from the person's first photo is probably someone else
 function learn(p,f,manual=false){ // every confirmation = one more sample (up to 20) — recognition gets stronger
   if(!f.desc)return false;
@@ -398,7 +419,9 @@ async function ssdFaces(c){
 async function huEmb(src,b){
   const s=Math.max(b.width,b.height)*1.7,cx=b.x+b.width/2,cy=b.y+b.height/2,t=document.createElement('canvas');t.width=t.height=256;
   const g=t.getContext('2d');g.imageSmoothingQuality='high';g.fillStyle='#808080';g.fillRect(0,0,256,256);g.drawImage(src,cx-s/2,cy-s/2,s,s,0,0,256,256);
-  const fs=(await human.detect(t)).face.filter(f=>f.embedding&&f.embedding.length);if(!fs.length)return null;
+  if(!humanOK||!human)return null;
+  let r;try{r=await withTimeout(human.detect(t),30000)}catch(e){humanOK=false;return null} // engine 2 stuck → continue without it
+  const fs=r.face.filter(f=>f.embedding&&f.embedding.length);if(!fs.length)return null;
   const d=f=>Math.hypot(f.box[0]+f.box[2]/2-128,f.box[1]+f.box[3]/2-128);fs.sort((a,b)=>d(a)-d(b));
   return Array.from(fs[0].embedding);
 }
@@ -412,11 +435,12 @@ async function analyze(hi,progress){
 }
 // one-time upgrade: give everyone registered a fingerprint from the new engine, using their card photo
 async function upgradePeople(){
-  const todo=S.people.filter(p=>!(p.hu&&p.hu.length));if(!todo.length)return;
-  let i=0;for(const p of todo){setStatus(`משדרג את הזיהוי ${++i}/${todo.length}<span class="spin"></span>`);
+  const todo=S.people.filter(p=>!(p.hu&&p.hu.length)&&!p.huTried);if(!todo.length)return;
+  let i=0;for(const p of todo){if(!humanOK)break;setBg(`משדרג את הזיהוי ברקע ${++i}/${todo.length} — אפשר להמשיך לעבוד`);
     try{const x=largest(await analyze(await imgToCanvas(p.photo)));if(x&&x.hu){p.hu=[x.hu];p.descriptors=p.descriptors||[];
-      if(best(p.descriptors,x.desc,dist)>=.2)p.descriptors.unshift(x.desc)}}catch(e){}}
-  await save();
+      if(best(p.descriptors,x.desc,dist)>=.2)p.descriptors.unshift(x.desc)}else p.huTried=1}catch(e){p.huTried=1}
+    await save()}
+  setBg('');
 }
 function imgToCanvas(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);res(c)};im.onerror=rej;im.src=src})}
 const largest=a=>a.reduce((m,x)=>!m||x.box.width>m.box.width?x:m,null);
@@ -429,6 +453,7 @@ async function handleFile(file){
   $('#result').innerHTML='';
   setStatus('מזהה פרצופים<span class="spin"></span>');
   try{await modelsReady}catch(e){return}
+  if(humanReady&&!humanOK&&!humanWaited){humanWaited=true;setStatus('מכין מנוע זיהוי שני<span class="spin"></span>');try{await withTimeout(humanReady,15000)}catch(e){}}
   let hi;try{hi=await fileToCanvas(file,3000)}catch(e){setStatus('');toast('לא ניתן לפתוח את התמונה');return}
   await new Promise(r=>setTimeout(r,30));
   const found=await analyze(hi,(i,n)=>setStatus(`מזהה פרצופים ${i}/${n}<span class="spin"></span>`));
@@ -444,13 +469,17 @@ async function handleFile(file){
   cur={sid:ses.id,faces};renderCapture();renderAtt();renderPeople();
 }
 function matchFaces(faces){
-  const T=SENS[S.sens]||SENS.normal,usable=S.people.filter(p=>p.descriptors&&p.descriptors.length&&p.hu&&p.hu.length);
+  const T=SENS[S.sens]||SENS.normal,usable=S.people.filter(p=>p.descriptors&&p.descriptors.length);
   if(!usable.length)return;
   const cand=[];
-  faces.forEach((f,i)=>{if(!f.desc||!f.hu)return;
-    const A=usable.map(p=>({p,d:best(p.descriptors,f.desc,dist)})).sort((x,y)=>x.d-y.d)[0];
-    const B=usable.map(p=>({p,d:best(p.hu,f.hu,cosd)})).sort((x,y)=>x.d-y.d)[0];
-    if(A.p===B.p&&A.d<T.fa&&B.d<T.hu)cand.push({i,p:A.p,s:A.d/T.fa+B.d/T.hu})});
+  faces.forEach((f,i)=>{if(!f.desc)return;
+    const A=usable.map(p=>({p,d:best(p.descriptors,f.desc,dist)})).sort((x,y)=>x.d-y.d);
+    const a=A[0],withHu=usable.filter(p=>p.hu&&p.hu.length);
+    if(f.hu&&a.p.hu&&a.p.hu.length){ // both engines: must agree
+      const b=withHu.map(p=>({p,d:best(p.hu,f.hu,cosd)})).sort((x,y)=>x.d-y.d)[0];
+      if(a.p===b.p&&a.d<T.fa&&b.d<T.hu)cand.push({i,p:a.p,s:a.d/T.fa+b.d/T.hu});
+    }else if(a.d<STRICT1&&(!A[1]||A[1].d-a.d>.05))cand.push({i,p:a.p,s:a.d/STRICT1+1}); // engine 1 alone: strict
+  });
   cand.sort((a,b)=>a.s-b.s);const up=new Set();
   for(const x of cand){if(up.has(x.p.id))continue;up.add(x.p.id);faces[x.i].pid=x.p.id} // one face per person per photo
 }
