@@ -115,7 +115,8 @@ main{max-width:720px;margin:0 auto;padding:16px}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:#fff;border-radius:26px 26px 0 0;max-height:92vh;overflow:auto;
   transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding:10px 18px calc(24px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
 .sheet.on{transform:none}
-.grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.grabbar{position:sticky;top:-10px;z-index:3;background:#fff;margin:-10px -18px 4px;padding:10px 0 12px;touch-action:none;cursor:grab}
+.grab{width:44px;height:5px;border-radius:9px;background:#d5e3ee;margin:0 auto}
 .pp{display:block;width:150px;aspect-ratio:35/45;object-fit:cover;border-radius:18px;margin:4px auto 12px;border:1px solid var(--line)}
 .sheet h2{text-align:center;margin:0;font-size:22px;font-weight:500}
 .meta{text-align:center;color:var(--mute);font-size:13px;margin:4px 0 16px}
@@ -170,6 +171,14 @@ nav button.act{color:var(--blue)}
   padding:10px 18px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;z-index:50;pointer-events:none;white-space:nowrap}
 .toast.on{opacity:1;transform:translateX(-50%)}
 .hide{display:none!important}
+.rephead{display:flex;align-items:center;gap:14px;margin:4px 0 14px}.rephead img{width:58px;height:74px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.rephead h2{text-align:right!important;font-size:20px!important}
+.repstat{display:flex;align-items:baseline;gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin:14px 0 12px}
+.repstat b{font-size:34px;color:var(--blue-d);line-height:1}.repstat span{flex:1;color:var(--mute);font-size:14px}.repstat i{font-style:normal;font-size:22px;font-weight:600;color:var(--blue)}
+.pdfper{display:flex;gap:18px;align-items:center;margin-bottom:18px}.pdfper>img{width:105px;height:135px;object-fit:cover;border-radius:12px;border:1px solid #e4eef6}
+.pdfper>div:nth-child(2){flex:1}.pdfper h1{margin:0 0 6px;font-size:26px;font-weight:600}.pdfper div div{font-size:13px;color:#12304a;margin-top:2px}.pdfper div div span{color:#7b93a6}
+.pdfstat{text-align:center;background:#f3faff;border:1px solid #e3f3fd;border-radius:14px;padding:12px 18px;display:flex;flex-direction:column}
+.pdfstat b{font-size:40px;color:#1287c7;line-height:1}.pdfstat span{font-size:12px;color:#7b93a6;margin-top:4px}.pdfstat i{font-style:normal;font-size:20px;font-weight:600;color:#2aa7e8;margin-top:4px}
 .pdfhost{position:fixed;left:-12000px;top:0;direction:rtl}
 .pdfp{width:794px;height:1123px;background:#fff;color:#12304a;font-family:Heebo,system-ui,sans-serif;padding:40px 44px;box-sizing:border-box;display:flex;flex-direction:column}
 .pdfh{display:flex;align-items:center;gap:14px;border-bottom:2px solid #e3f3fd;padding-bottom:14px}
@@ -248,7 +257,7 @@ nav button.act{color:var(--blue)}
 
 <div class="selbar" id="selbar"></div>
 <div class="back" id="back"></div>
-<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="sheet" id="sheet"><div class="grabbar"><div class="grab"></div></div><div id="sheetBody"></div></div>
 
 <div class="dlg" id="dlg"><div class="dlgb" id="dlgb">
   <h4 id="dlgT"></h4><p id="dlgP"></p>
@@ -292,9 +301,27 @@ const SES=id=>S.sessions.find(s=>s.id===id);
 let tT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('on'),2200)}
 function setStatus(h){$('#status').innerHTML=h}
 let sheetOnClose=null;
-function openSheet(html,onClose){$('#sheetBody').innerHTML=html;$('#sheet').scrollTop=0;$('#back').classList.add('on');$('#sheet').classList.add('on');sheetOnClose=onClose||null}
-function closeSheet(){$('#back').classList.remove('on');$('#sheet').classList.remove('on');const f=sheetOnClose;sheetOnClose=null;if(f)f()}
-$('#back').onclick=closeSheet;
+let sheetHist=false,ignorePop=false;
+function openSheet(html,onClose){if(!sheetHist&&!ignorePop){try{history.pushState({sheet:1},'')}catch(e){}sheetHist=true}$('#sheet').style.transform='';$('#sheetBody').innerHTML=html;$('#sheet').scrollTop=0;$('#back').classList.add('on');$('#sheet').classList.add('on');sheetOnClose=onClose||null}
+function closeSheet(fromBack){if(sheetHist&&fromBack!==true){sheetHist=false;ignorePop=true;try{history.back()}catch(e){ignorePop=false}}
+  const s=$('#sheet');s.style.transition='';s.style.transform='';$('#back').style.opacity='';
+  $('#back').classList.remove('on');s.classList.remove('on');const f=sheetOnClose;sheetOnClose=null;if(f)f()}
+$('#back').onclick=()=>closeSheet();
+// phone back button closes the card instead of leaving the app
+addEventListener('popstate',()=>{
+  if(ignorePop){ignorePop=false;if($('#sheet').classList.contains('on')&&!sheetHist){try{history.pushState({sheet:1},'')}catch(e){}sheetHist=true}return} // our own back() finished; a new card may have opened meanwhile
+  if(sheetHist){sheetHist=false;closeSheet(true)}});
+// pull the card down to close it (from the handle, or anywhere when the card is scrolled to the top)
+(()=>{const s=$('#sheet');let y0=null,dy=0,t0=0,drag=false;
+  s.addEventListener('touchstart',e=>{if(!s.classList.contains('on')||$('#dlg').classList.contains('on'))return;const tg=e.target;
+    if(tg.closest('input,select,textarea'))return;
+    if(s.scrollTop>0&&!tg.closest('.grabbar'))return;y0=e.touches[0].clientY;dy=0;t0=Date.now();drag=false},{passive:true});
+  s.addEventListener('touchmove',e=>{if(y0===null)return;dy=e.touches[0].clientY-y0;
+    if(!drag&&dy>8){drag=true;s.style.transition='none'}
+    if(drag){if(e.cancelable)e.preventDefault();const d=Math.max(0,dy);s.style.transform=`translateY(${d}px)`;$('#back').style.opacity=String(Math.max(0,1-d/400))}},{passive:false});
+  const end=()=>{if(y0===null)return;y0=null;if(!drag)return;drag=false;s.style.transition='';const fast=dy/(Date.now()-t0)>.6;
+    if(dy>120||(fast&&dy>40))closeSheet();else{s.style.transform='';$('#back').style.opacity=''}};
+  s.addEventListener('touchend',end);s.addEventListener('touchcancel',end)})();
 
 /* dialog: code / text */
 function dialog({title,text='',type='text',value='',placeholder='',check,okText='אישור',noText='ביטול',danger=false}){
@@ -558,7 +585,7 @@ function personSheet(id,edit=false,fi=null){
     ${edit?fieldInputs(p):`<div class="fl">${rows.map(([l,v])=>`<div class="fr"><label>${esc(l)}</label><div class="v">${esc(v)||'<span style="color:#c3d3df">—</span>'}</div></div>`).join('')}</div>`}
     <div class="acts">${edit
       ?`<button class="btn ghost" id="af">+ הוסף שדה</button><button class="btn pri" id="sv">שמירה</button>`
-      :`<button class="btn sec" id="ed">עריכה</button><button class="btn ghost" id="af">+ הוסף שדה</button>`}</div>
+      :`<button class="btn sec" id="ed">עריכה</button><button class="btn sec" id="rep">דוח אישי</button><button class="btn ghost" id="af">+ הוסף שדה</button>`}</div>
     <div class="sub">קבוצות <small>הקישו לשיוך / ביטול</small></div>
     <div class="gwrap" id="pg">${S.groups.map(g=>`<button class="gchip ${(p.groups||[]).includes(g.id)?'on':''}" data-g="${g.id}">${esc(g.name)}</button>`).join('')}<button class="gchip add" id="pgAdd">+ קבוצה</button></div>
     <div class="sub">נוכחות <small>${att.length}</small></div>
@@ -574,6 +601,7 @@ function personSheet(id,edit=false,fi=null){
     catch(err){toast('לא ניתן לנתח את התמונה')}});
   $('#af').onclick=()=>withCode(async()=>{const v=edit?readInputs():null;if(await addField()){if(v)Object.assign(p,{first:v.first,last:v.last,extra:{...p.extra,...v.extra}});personSheet(id,true)}});
   if($('#ed'))$('#ed').onclick=()=>withCode(()=>personSheet(id,true));
+  if($('#rep'))$('#rep').onclick=()=>personReport(id);
   if($('#sv'))$('#sv').onclick=()=>withCode(async()=>{const v=readInputs();p.first=v.first;p.last=v.last;p.extra={...p.extra,...v.extra};await save();renderAll();personSheet(id);toast('עודכן ✓')});
   $('#del').onclick=()=>withCode(async()=>{if(await deletePeople([id]))closeSheet()});
   document.querySelectorAll('#sheetBody .li[data-s]').forEach(b=>b.onclick=()=>sessionSheet(b.dataset.s));
@@ -779,7 +807,9 @@ function exportSelection(o){
   if(o.mode==='pick')ss=ss.filter(s=>o.sids.includes(s.id));
   if(o.mode==='range'){const f=o.from?new Date(o.from+'T00:00').getTime():-Infinity,t=o.to?new Date(o.to+'T23:59:59').getTime():Infinity;ss=ss.filter(s=>s.ts>=f&&s.ts<=t)}
   let ppl=[...S.people].sort(byName);
-  if(o.group){ppl=ppl.filter(p=>inGroup(p,o.group));const ids=new Set(ppl.map(p=>p.id));ss=ss.filter(s=>s.present.some(x=>ids.has(x)))}
+  if(o.person)ppl=ppl.filter(p=>p.id===o.person);
+  if(o.group&&o.person){const ids=new Set(S.people.filter(p=>inGroup(p,o.group)).map(p=>p.id));ss=ss.filter(s=>s.present.some(x=>ids.has(x)))}
+  else if(o.group){ppl=ppl.filter(p=>inGroup(p,o.group));const ids=new Set(ppl.map(p=>p.id));ss=ss.filter(s=>s.present.some(x=>ids.has(x)))}
   return {ss,ppl};
 }
 function filterText(o,ss){
@@ -788,6 +818,7 @@ function filterText(o,ss){
   else if(o.mode==='pick')parts.push(ss.length+' מפגשים נבחרים');
   else if(o.mode==='range')parts.push((o.from?fShort(new Date(o.from+'T12:00').getTime()):'…')+' – '+(o.to?fShort(new Date(o.to+'T12:00').getTime()):'…'));
   else parts.push('כל המפגשים');
+  if(o.person){const p=P(o.person);parts.unshift(p?fullName(p):'');parts.push(g?'מפגשי '+g.name:'כל המפגשים');return parts.join(' · ')}
   parts.push(g?'קבוצה: '+g.name:'כל האנשים');return parts.join(' · ');
 }
 async function deliver(blob,name){
@@ -798,6 +829,10 @@ async function deliver(blob,name){
 function exportExcel(o){
   const {ss,ppl}=exportSelection(o);
   const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  if(o.person&&ppl[0]){const p=ppl[0],n=ss.filter(s=>s.present.includes(p.id)).length;
+    const rows=[[fullName(p)],[filterText(o,ss)],['נכח',n,'מתוך',ss.length,ss.length?Math.round(100*n/ss.length)+'%':''],[],['תאריך','יום','שעה','נוכחות'],
+      ...ss.map(s=>[fShort(s.ts),new Date(s.ts).toLocaleDateString('he-IL',{weekday:'long'}),fTime(s.ts),s.present.includes(p.id)?'V':''])];
+    deliver(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),'נוכחות-'+(p.first||'')+(p.last?'-'+p.last:'')+'.csv');return}
   const head=['שם פרטי','שם משפחה','קבוצות',...S.fields,'נוכחויות','אחוז',...ss.map(s=>fShort(s.ts)+' '+fTime(s.ts))];
   const rows=ppl.map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':''),n=m.filter(Boolean).length;
     return [p.first,p.last,(p.groups||[]).map(G).filter(Boolean).map(g=>g.name).join(' / '),...S.fields.map(f=>(p.extra||{})[f]),n,ss.length?Math.round(100*n/ss.length)+'%':'',...m]});
@@ -817,7 +852,15 @@ async function exportPdf(o){
   const add=(html,again='')=>{const t=document.createElement('div');t.innerHTML=html;const n=t.firstElementChild;body.appendChild(n);
     if(body.scrollHeight>body.clientHeight+1&&body.children.length>1){n.remove();newPage();if(again)body.insertAdjacentHTML('beforeend',again);body.appendChild(n)}};
   newPage();
-  if(ss.length===1){ // one session: photos of who came + who didn't
+  if(o.person&&ppl[0]){ // one person: card + attendance list
+    const p=ppl[0],at=ss.filter(s=>s.present.includes(p.id)),n=at.length,pc=ss.length?Math.round(100*n/ss.length):0;
+    const info=[...(p.groups||[]).map(G).filter(Boolean).map(g=>['קבוצה',g.name]),...S.fields.map(f=>[f,(p.extra||{})[f]]).filter(x=>x[1])];
+    add(`<div class="pdfper"><img src="${p.photo}"><div><h1>${esc(fullName(p))}</h1>${info.map(([k,v])=>`<div><span>${esc(k)}</span> ${esc(v)}</div>`).join('')}</div>
+      <div class="pdfstat"><b>${n}</b><span>מתוך ${ss.length} מפגשים</span><i>${pc}%</i></div></div>`);
+    const th=`<div class="pdfr th" style="grid-template-columns:1.4fr 1fr .7fr .8fr"><div>תאריך</div><div>יום</div><div>שעה</div><div>נוכחות</div></div>`;
+    add(th);
+    ss.forEach((s,i)=>add(`<div class="pdfr ${i%2?'z':''}" style="grid-template-columns:1.4fr 1fr .7fr .8fr"><div>${fShort(s.ts)}</div><div>${new Date(s.ts).toLocaleDateString('he-IL',{weekday:'long'})}</div><div>${fTime(s.ts)}</div><div>${s.present.includes(p.id)?'<b class="v">✓ נכח</b>':'<span class="x">—</span>'}</div></div>`,th));
+  }else if(ss.length===1){ // one session: photos of who came + who didn't
     const s=ss[0],pres=ppl.filter(p=>s.present.includes(p.id)),abs=ppl.filter(p=>!s.present.includes(p.id));
     add(`<div class="pdft"><h1>${fDate(s.ts)}</h1><span>${fTime(s.ts)} · נכחו ${pres.length}${abs.length?' · לא נכחו '+abs.length:''}</span></div>`);
     add(`<h2>נכחו (${pres.length})</h2>`);
@@ -840,7 +883,38 @@ async function exportPdf(o){
   for(let i=0;i<pages.length;i++){const cv=await html2canvas(pages[i],{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
     if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',.9),'JPEG',0,0,210,297)}
   host.remove();
-  await deliver(pdf.output('blob'),(ss.length===1?'נוכחות-'+dayKey(ss[0].ts):'נוכחות-'+dayKey(Date.now()))+'.pdf');
+  const pp=o.person&&P(o.person);
+  await deliver(pdf.output('blob'),(pp?'נוכחות-'+(pp.first||'')+(pp.last?'-'+pp.last:''):ss.length===1?'נוכחות-'+dayKey(ss[0].ts):'נוכחות-'+dayKey(Date.now()))+'.pdf');
+}
+function personReport(id){
+  const p=P(id);if(!p)return;
+  const mine=(p.groups||[]).filter(g=>G(g));
+  const o={person:id,mode:'range',sids:[],group:mine.length===1?mine[0]:'',from:'',to:'',fmt:'pdf'};
+  const all=[...S.sessions].sort((a,b)=>a.ts-b.ts);
+  if(all.length){o.from=dayKey(all[0].ts);o.to=dayKey(all[all.length-1].ts)}
+  const quick=k=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();const f=x=>dayKey(x.getTime());
+    if(k==='m'){o.from=f(new Date(y,m,1));o.to=f(new Date(y,m+1,0))}
+    if(k==='pm'){o.from=f(new Date(y,m-1,1));o.to=f(new Date(y,m,0))}
+    if(k==='3'){o.from=f(new Date(y,m-2,1));o.to=f(new Date(y,m+1,0))}
+    if(k==='y'){const sy=m>=8?y:y-1;o.from=f(new Date(sy,8,1));o.to=f(new Date(sy+1,7,31))} // school/season year: Sep–Aug
+    if(k==='all'&&all.length){o.from=dayKey(all[0].ts);o.to=dayKey(all[all.length-1].ts)}};
+  const chip=(v,on,l)=>`<button class="gchip ${on?'on':''}" data-v="${v}">${l}</button>`;
+  const draw=()=>{
+    const {ss}=exportSelection(o),n=ss.filter(s=>s.present.includes(id)).length,pc=ss.length?Math.round(100*n/ss.length):0;
+    openSheet(`<div class="rephead"><img src="${p.photo}"><div><h2>${esc(fullName(p))}</h2><div class="meta" style="text-align:right;margin:2px 0 0">דוח נוכחות אישי</div></div></div>
+      <div class="gwrap" id="rpQ">${chip('m',0,'החודש')}${chip('pm',0,'חודש קודם')}${chip('3',0,'3 חודשים')}${chip('y',0,'שנה (ספט׳–אוג׳)')}${chip('all',0,'הכל')}</div>
+      <div class="fl" style="margin-top:10px"><div class="fr"><label>מתאריך</label><input type="date" id="rpF" value="${o.from}"></div><div class="fr"><label>עד תאריך</label><input type="date" id="rpT" value="${o.to}"></div></div>
+      ${S.groups.length?`<div class="sub">מתוך</div><div class="gwrap" id="rpG">${chip('',!o.group,'כל המפגשים')}${mine.map(g=>chip(g,o.group===g,'מפגשי '+esc(G(g).name))).join('')}</div>`:''}
+      <div class="repstat"><b>${n}</b><span>נוכחויות מתוך ${ss.length} מפגשים</span><i>${ss.length?pc+'%':'—'}</i></div>
+      ${ss.length?`<div class="list">${[...ss].reverse().map(s=>{const y=s.present.includes(id);return `<div class="li ${y?'':'off'}"><span class="n">${fDate(s.ts)}</span><span class="d">${fTime(s.ts)}</span><span class="d" style="width:44px;text-align:center;${y?'color:var(--blue);font-weight:600':''}">${y?'✓':'—'}</span></div>`}).join('')}</div>`:'<div class="empty" style="padding:16px">אין מפגשים בטווח הזה</div>'}
+      <div class="acts" style="margin-top:16px"><button class="btn pri" id="rpPdf" ${ss.length?'':'disabled'}>PDF</button><button class="btn sec" id="rpXls" ${ss.length?'':'disabled'}>אקסל</button></div>`);
+    $('#rpQ').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{quick(b.dataset.v);draw()});
+    if($('#rpG'))$('#rpG').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{o.group=b.dataset.v;draw()});
+    $('#rpF').onchange=e=>{o.from=e.target.value;draw()};$('#rpT').onchange=e=>{o.to=e.target.value;draw()};
+    $('#rpPdf').onclick=async()=>{const b=$('#rpPdf');b.disabled=true;b.textContent='מכין…';await exportPdf(o);b.disabled=false;b.textContent='PDF'};
+    $('#rpXls').onclick=()=>exportExcel(o);
+  };
+  draw();
 }
 function openExport(preset){
   const o={mode:preset&&preset.sids?'pick':'all',sids:preset&&preset.sids||[],from:'',to:'',group:'',fmt:preset&&preset.sids&&preset.sids.length===1?'pdf':'xlsx'};
