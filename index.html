@@ -357,11 +357,43 @@ $('#lockBtn').onclick=()=>{if(unlocked){lock();toast('ננעל')}else withCode((
 
 /* ---------- face engine: two independent fingerprints must agree ---------- */
 // one TensorFlow engine runs two different recognition networks on every face:
-// A) face-api ResNet (128 numbers)  B) faceres network (1024 numbers, from the Human project)
+// A) face-api ResNet (128 numbers, GPU)  B) SFace (128 numbers, CPU/WASM, aligned on 5 face points — robust to head turns)
 // a name is given only when BOTH point to the same person
-const FACERES_URL='https://cdn.jsdelivr.net/npm/@vladmandic/human-models@3.0.4/models/faceres.json';
-const HU_V=2,HU_SCALE=1.0; // fingerprint B version (older ones are rebuilt automatically) and crop size around the aligned face
-let modelsReady,faceres=null;
+const HU_V=3; // fingerprint B version: 3 = SFace (older ones are rebuilt automatically from the card photo)
+let modelsReady,sface=null,sfReady=null,sfWaited=false;
+// fingerprint B: SFace (OpenCV Zoo, Apache-2.0) — modern ArcFace-style network, more robust to head turns.
+// runs on the CPU (WASM) so it never competes with the GPU engine; model file ships next to index.html.
+const ORT_BASE='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+function loadSFace(){
+  sfReady=(async()=>{
+    await withTimeout(loadScript(ORT_BASE+'ort.wasm.min.js'),60000);
+    ort.env.wasm.wasmPaths=ORT_BASE;ort.env.wasm.numThreads=1;
+    sface=await withTimeout(ort.InferenceSession.create('sface.onnx',{executionProviders:['wasm']}),120000);
+    const z=document.createElement('canvas');z.width=z.height=112;await withTimeout(sfRun(z),60000); // warm-up
+  })().catch(()=>{sface=null});
+  return sfReady;
+}
+// ArcFace 112×112 template: eye(img-left), eye(img-right), nose tip, mouth corners
+const SF_DST=[[38.2946,51.6963],[73.5318,51.5014],[56.0252,71.7366],[41.5493,92.3655],[70.7299,92.2041]];
+function lm5(pos,ox=0,oy=0){const m=(a,b)=>{let x=0,y=0;for(let i=a;i<=b;i++){x+=pos[i].x;y+=pos[i].y}const n=b-a+1;return [x/n+ox,y/n+oy]};
+  return [m(36,41),m(42,47),[pos[30].x+ox,pos[30].y+oy],[pos[48].x+ox,pos[48].y+oy],[pos[54].x+ox,pos[54].y+oy]]}
+function simTransform(src,dst){ // least-squares similarity: u=a·x−b·y+tx, v=b·x+a·y+ty
+  let n=src.length,sx=0,sy=0,du=0,dv=0;src.forEach(([x,y],i)=>{sx+=x;sy+=y;du+=dst[i][0];dv+=dst[i][1]});
+  const mx=sx/n,my=sy/n,mu=du/n,mv=dv/n;let A=0,B=0,D=0;
+  src.forEach(([x,y],i)=>{const X=x-mx,Y=y-my,U=dst[i][0]-mu,V=dst[i][1]-mv;A+=X*U+Y*V;B+=X*V-Y*U;D+=X*X+Y*Y});
+  const a=A/D,b=B/D;return [a,b,mu-a*mx+b*my,mv-b*mx-a*my];
+}
+async function sfRun(c){ // 112×112 aligned face → 128 numbers
+  const d=c.getContext('2d').getImageData(0,0,112,112).data,N=112*112,f=new Float32Array(3*N);
+  for(let i=0;i<N;i++){f[i]=d[i*4];f[N+i]=d[i*4+1];f[2*N+i]=d[i*4+2]} // RGB, 0..255 (model normalizes inside)
+  const r=await sface.run({data:new ort.Tensor('float32',f,[1,3,112,112])});return Array.from(r[sface.outputNames[0]].data);
+}
+async function sfEmb(src,pts){
+  if(!sface||!pts)return null;
+  const [a,b,tx,ty]=simTransform(pts,SF_DST),c=document.createElement('canvas');c.width=c.height=112;
+  const g=c.getContext('2d');g.imageSmoothingQuality='high';g.setTransform(a,b,-b,a,tx,ty);g.drawImage(src,0,0);
+  try{return await withTimeout(sfRun(c),20000)}catch(e){return null}
+}
 const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
 function setBg(t){const e=$('#bgStatus');if(e)e.innerHTML=t||''}
 function loadModels(){
@@ -370,23 +402,11 @@ function loadModels(){
     setStatus('טוען מנוע זיהוי<span class="spin"></span>');
     try{await faceapi.tf.setBackend('webgl')}catch(e){}
     await faceapi.tf.ready();
-    await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL),
-      withTimeout(faceapi.tf.loadGraphModel(FACERES_URL),120000).then(m=>{faceres=m}).catch(()=>{faceres=null})]);
-    if(faceres){try{await withTimeout(huFromCanvas(Object.assign(document.createElement('canvas'),{width:224,height:224})),60000)}catch(e){faceres=null}} // warm-up
+    await Promise.all([faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL),faceapi.nets.faceLandmark68Net.loadFromUri(MODEL),faceapi.nets.faceRecognitionNet.loadFromUri(MODEL)]);
     setStatus('');
-    upgradePeople();
+    loadSFace().then(upgradePeople); // engine B loads in the background — the app is already usable
   })();
   modelsReady.catch(()=>setStatus('לא ניתן לטעון את מנוע הזיהוי — בדקו חיבור לאינטרנט'));
-}
-async function huFromCanvas(c){ // 224×224 face → 1024-number fingerprint
-  const t=faceapi.tf.tidy(()=>faceapi.tf.browser.fromPixels(c).toFloat().expandDims(0));
-  const o=faceres.execute(t,'global_pooling/Mean');const v=Array.from(await o.data());t.dispose();o.dispose();return v;
-}
-async function huEmb(src,b){ // b = aligned face box (from the 68 landmarks), in src coordinates
-  if(!faceres)return null;
-  const s=Math.max(b.width,b.height)*HU_SCALE,cx=b.x+b.width/2,cy=b.y+b.height/2,c=document.createElement('canvas');c.width=c.height=224;
-  const g=c.getContext('2d');g.imageSmoothingQuality='high';g.fillStyle='#000';g.fillRect(0,0,224,224);g.drawImage(src,cx-s/2,cy-s/2,s,s,0,0,224,224);
-  try{return await withTimeout(huFromCanvas(c),20000)}catch(e){return null}
 }
 function dist(a,b){let s=0;for(let i=0;i<128;i++){const d=a[i]-b[i];s+=d*d}return Math.sqrt(s)}
 function cosd(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i]}return 1-d/Math.sqrt(na*nb)}
@@ -405,8 +425,8 @@ function learn(p,f,manual=false){ // every confirmation = one more sample (up to
 }
 function unlearn(p,f){const a=JSON.stringify(f.desc),b=f.hu?JSON.stringify(f.hu):'-';
   p.descriptors=(p.descriptors||[]).filter(d=>JSON.stringify(d)!==a);p.hu=(p.hu||[]).filter(d=>JSON.stringify(d)!==b)}
-// thresholds (measured on a labeled test set): fa = fingerprint A distance, hu = fingerprint B cosine distance
-const SENS={strict:{fa:.57,hu:.43,label:'מחמיר'},normal:{fa:.60,hu:.46,label:'רגיל'},loose:{fa:.62,hu:.49,label:'רגיש'}};
+// thresholds (measured on labeled test sets: 0 wrong names, 0 strangers named at 'normal'): fa = A distance, hu = B (SFace) cosine distance
+const SENS={strict:{fa:.62,hu:.52,label:'מחמיר'},normal:{fa:.65,hu:.55,label:'רגיל'},loose:{fa:.68,hu:.58,label:'רגיש'}};
 function fileToCanvas(file,max){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
   im.onload=()=>{const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight));const c=document.createElement('canvas');
     c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c)};
@@ -425,7 +445,7 @@ async function ssdFaces(c){
   const add=(d,ox,oy,tw,th)=>{const {x,y,width:w,height:hh}=d.detection.box;
     if(tw&&((x<2&&ox>0)||(y<2&&oy>0)||(x+w>tw-2&&ox+tw<c.width)||(y+hh>th-2&&oy+th<c.height)))return; // cut by a tile edge
     const box={x:x+ox,y:y+oy,width:w,height:hh};if(out.some(o=>overlap(o.box,box)>.3))return;
-    const a=d.alignedRect.box;out.push({box,al:{x:a.x+ox,y:a.y+oy,width:a.width,height:a.height},desc:Array.from(d.descriptor)})};
+    const a=d.alignedRect.box;out.push({box,al:{x:a.x+ox,y:a.y+oy,width:a.width,height:a.height},p5:lm5(d.landmarks.positions,ox,oy),desc:Array.from(d.descriptor)})};
   (await faceapi.detectAllFaces(c,opt).withFaceLandmarks().withFaceDescriptors()).forEach(d=>add(d,0,0));
   const M=Math.max(c.width,c.height);
   if(M>900){const T=Math.round(M*.6),xs=c.width>T?[0,c.width-T]:[0],ys=c.height>T?[0,c.height-T]:[0];
@@ -438,12 +458,12 @@ async function analyze(hi,progress){
   const k=Math.min(1,1600/Math.max(hi.width,hi.height)),c=document.createElement('canvas');
   c.width=Math.round(hi.width*k);c.height=Math.round(hi.height*k);c.getContext('2d').drawImage(hi,0,0,c.width,c.height);
   const found=await ssdFaces(c),s=hi.width/c.width;
-  for(let i=0;i<found.length;i++){if(progress)progress(i+1,found.length);try{found[i].hu=await huEmb(c,found[i].al)}catch(e){found[i].hu=null}}
+  for(let i=0;i<found.length;i++){if(progress)progress(i+1,found.length);try{found[i].hu=await sfEmb(c,found[i].p5)}catch(e){found[i].hu=null}}
   return found.map(f=>({box:{x:f.box.x*s,y:f.box.y*s,width:f.box.width*s,height:f.box.height*s},desc:f.desc,hu:f.hu}));
 }
 // background upgrade: everyone without a current fingerprint B gets one from their card photo (fast — one face each)
 async function upgradePeople(){
-  if(!faceres)return;
+  if(!sface)return;
   const todo=S.people.filter(p=>p.huV!==HU_V&&!p.huTried);if(!todo.length)return;
   let i=0;for(const p of todo){setBg(`משדרג את הזיהוי ${++i}/${todo.length}`);
     try{const x=largest(await analyze(await imgToCanvas(p.photo)));
@@ -463,6 +483,7 @@ async function handleFile(file){
   $('#result').innerHTML='';
   setStatus('מזהה פרצופים<span class="spin"></span>');
   try{await modelsReady}catch(e){return}
+  if(sfReady&&!sface&&!sfWaited){sfWaited=true;setStatus('מכין את מנוע הזיהוי<span class="spin"></span>');try{await withTimeout(sfReady,20000)}catch(e){}}
   let hi;try{hi=await fileToCanvas(file,3000)}catch(e){setStatus('');toast('לא ניתן לפתוח את התמונה');return}
   await new Promise(r=>setTimeout(r,30));
   const found=await analyze(hi,(i,n)=>setStatus(`מזהה פרצופים ${i}/${n}<span class="spin"></span>`));
