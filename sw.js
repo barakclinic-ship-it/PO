@@ -1,8 +1,8 @@
 // PO service worker — בכל עדכון של האפליקציה מעלים את מספר הגרסה
-const VERSION = 'po-v13';
+const VERSION = 'po-v15';
 const MODELS = 'po-models-v1'; // מנוע הזיהוי (cdn.jsdelivr) — נשמר כדי שהאפליקציה תעלה מהר וגם בלי רשת
 const APP_FILES = ['./', 'index.html', 'manifest.webmanifest', 'logo.png',
-  'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'sface.onnx'];
+  'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'sface.onnx', 'yunet.onnx'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(APP_FILES)).then(() => self.skipWaiting()));
