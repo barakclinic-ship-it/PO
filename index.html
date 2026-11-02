@@ -101,7 +101,7 @@ main{max-width:720px;margin:0 auto;padding:16px}
 /* attendance */
 .day{margin-bottom:18px}
 .day h3{font-size:13px;font-weight:500;color:var(--mute);margin:0 4px 8px}
-.ses{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-bottom:8px;text-align:right}
+.ses{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-bottom:8px;text-align:start}
 .ses:active{background:var(--soft)}
 .ses .t{font-weight:500;font-size:16px;min-width:50px}
 .ses .c{font-size:13px;color:var(--mute)}
@@ -133,7 +133,7 @@ main{max-width:720px;margin:0 auto;padding:16px}
 .sub{font-size:14px;font-weight:500;margin:20px 2px 8px;display:flex;justify-content:space-between;align-items:center}
 .sub small{font-weight:400;color:var(--mute)}
 .list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.li{display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid var(--line);width:100%;text-align:right}
+.li{display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid var(--line);width:100%;text-align:start}
 .li:last-child{border-bottom:0}
 .li img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--sky)}
 .li .n{flex:1;font-size:15px}
@@ -173,14 +173,14 @@ nav button.act{color:var(--blue)}
 .hide{display:none!important}
 .sesph{display:block;width:100%;max-height:260px;object-fit:cover;border-radius:16px;border:1px solid var(--line);margin:4px 0 6px}
 .rephead{display:flex;align-items:center;gap:14px;margin:4px 0 14px}.rephead img{width:58px;height:74px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
-.rephead h2{text-align:right!important;font-size:20px!important}
+.rephead h2{text-align:start!important;font-size:20px!important}
 .repstat{display:flex;align-items:baseline;gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin:14px 0 12px}
 .repstat b{font-size:34px;color:var(--blue-d);line-height:1}.repstat span{flex:1;color:var(--mute);font-size:14px}.repstat i{font-style:normal;font-size:22px;font-weight:600;color:var(--blue)}
 .pdfper{display:flex;gap:18px;align-items:center;margin-bottom:18px}.pdfper>img{width:105px;height:135px;object-fit:cover;border-radius:12px;border:1px solid #e4eef6}
 .pdfper>div:nth-child(2){flex:1}.pdfper h1{margin:0 0 6px;font-size:26px;font-weight:600}.pdfper div div{font-size:13px;color:#12304a;margin-top:2px}.pdfper div div span{color:#7b93a6}
 .pdfstat{text-align:center;background:#f3faff;border:1px solid #e3f3fd;border-radius:14px;padding:12px 18px;display:flex;flex-direction:column}
 .pdfstat b{font-size:40px;color:#1287c7;line-height:1}.pdfstat span{font-size:12px;color:#7b93a6;margin-top:4px}.pdfstat i{font-style:normal;font-size:20px;font-weight:600;color:#2aa7e8;margin-top:4px}
-.pdfhost{position:fixed;left:-12000px;top:0;direction:rtl}
+.pdfhost{position:fixed;left:-12000px;top:0}
 .pdfp{width:794px;height:1123px;background:#fff;color:#12304a;font-family:Heebo,system-ui,sans-serif;padding:40px 44px;box-sizing:border-box;display:flex;flex-direction:column}
 .pdfh{display:flex;align-items:center;gap:14px;border-bottom:2px solid #e3f3fd;padding-bottom:14px}
 .pdfh img{width:44px;height:44px;object-fit:contain}.pdfh div{flex:1;display:flex;flex-direction:column}.pdfh b{font-size:20px}.pdfh span{color:#7b93a6;font-size:13px}.pdfh i{font-style:normal;color:#7b93a6;font-size:12px}
@@ -192,10 +192,10 @@ nav button.act{color:var(--blue)}
 .pdfa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}.pdfa div{display:flex;align-items:center;gap:8px;font-size:13px;color:#4a6478}.pdfa img{width:28px;height:28px;border-radius:50%;object-fit:cover;filter:grayscale(1);opacity:.7}
 .pdfr{display:grid;align-items:center;min-height:34px;font-size:12px;text-align:center;border-bottom:1px solid #eef4f9}.pdfr.z{background:#f6fbff}
 .pdfr.th{font-weight:600;color:#1287c7;background:#e3f3fd;border-radius:8px;min-height:38px;border:0}.pdfr.th small{display:block;font-weight:400;font-size:9px;color:#7b93a6}
-.pdfr.tf{font-weight:600;background:#f3faff}.pdfr .nm{display:flex;align-items:center;gap:8px;text-align:right;padding-right:6px;font-size:13px}.pdfr .nm img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.pdfr.tf{font-weight:600;background:#f3faff}.pdfr .nm{display:flex;align-items:center;gap:8px;text-align:start;padding-right:6px;font-size:13px}.pdfr .nm img{width:26px;height:26px;border-radius:50%;object-fit:cover}
 .pdfr .v{color:#2aa7e8;font-size:14px}.pdfr .x{color:#9aabb8;font-size:12px}
 .pdfr.yes{background:#fff}.pdfr.no{background:#e9eef2;color:#7d8f9c}.pdfr.no img{filter:grayscale(1);opacity:.65}
-.pdfr.big{min-height:58px}.pdfr .av{width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;margin:0 auto}.pdfr .nm2{text-align:right;font-size:15px;font-weight:500}
+.pdfr.big{min-height:58px}.pdfr .av{width:44px;height:44px;border-radius:50%;object-fit:cover;display:block;margin:0 auto}.pdfr .nm2{text-align:start;font-size:15px;font-weight:500}
 .pdfr .bigv{color:#1fa0e0;font-size:32px;font-weight:900;line-height:1}
 .pdfr.grid>div{align-self:stretch;display:flex;align-items:center;justify-content:center}.pdfr.grid>div.nm{justify-content:flex-start}
 .pdfr .cy{background:#fff}.pdfr .cn{background:#e9eef2}.pdfr.grid{border-bottom:2px solid #fff}
@@ -221,6 +221,7 @@ nav button.act{color:var(--blue)}
 <header>
   <div class="brand"><img src="logo.png" alt=""><h1>PO<small>נוכחות</small></h1></div>
   <div class="hbtns">
+    <button class="ib" id="langBtn" aria-label="שפה / Language" style="font-size:13px;font-weight:700;color:var(--blue)">EN</button>
     <button class="ib" id="instBtn" aria-label="התקנה כאפליקציה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></svg></button>
     <button class="ib" id="shareBtn" aria-label="שיתוף"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.7 10.7l6.6-3.9M8.7 13.3l6.6 3.9"/></svg></button>
     <button class="ib" id="lockBtn" aria-label="נעילה"></button>
@@ -284,9 +285,250 @@ const $=s=>document.querySelector(s);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fullName=p=>[p.first,p.last].filter(Boolean).join(' ')||'ללא שם';
-const fDate=ts=>new Date(ts).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'numeric',year:'numeric'});
-const fShort=ts=>new Date(ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'});
-const fTime=ts=>new Date(ts).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+/* ---------- language (Hebrew / English) ---------- */
+const TR_EN={
+'כל אדם יזוהה מעכשיו לפי התמונה בכרטיס שלו. כדאי לוודא קודם שהתמונות נכונות. הקלידו "כן" לאישור':'From now on everyone will be recognized by their card photo. Check the photos first. Type "yes" to confirm',
+'כל מי שרשום יותר מפעם אחת יאוחד לכרטיס אחד — עם כל התמונות, הנוכחות והקבוצות.':'Anyone registered more than once will be merged into one card — with all photos, attendance and groups.',
+'עדיין אין אנשים — צלמו קבוצה ותנו שמות לפרצופים':'No people yet — photograph a group and name the faces',
+'התמונה והתאריך יישמרו תחת הקבוצה, וכל מי שיזוהה יצורף אליה':'The photo and date will be saved under this group, and everyone recognized will join it',
+'זה אותו אדם? אם כן, התמונה תצטרף אליו והזיהוי שלו יתחזק.':'Is this the same person? If so, the photo will be added and their recognition will get stronger.',
+'לא ניתן לטעון את מנוע הזיהוי — בדקו חיבור לאינטרנט':'Could not load the recognition engine — check your internet connection',
+'אין עדיין אנשים בקבוצה — הקישו "שיוך אנשים"':'No people in this group yet — tap "Assign people"',
+'הכל נשמר רק במכשיר הזה. מומלץ לגבות מדי פעם.':'Everything is stored only on this device. Back up from time to time.',
+'האנשים והנוכחות נשארים — רק הקבוצה נמחקת.':'People and attendance stay — only the group is deleted.',
+'התחילו להקליד — אם השם כבר רשום הוא יקפוץ':'Start typing — if the name is registered it will pop up',
+'צלמו את הקבוצה — המערכת תזהה כל פרצוף':'Photograph the group — every face will be recognized',
+'מחיקת קבוצה לא מוחקת אנשים או נוכחות':'Deleting a group does not delete people or attendance',
+'הקישו על פרצוף כדי להוסיף או להוציא':'Tap a face to add or remove',
+'למשל: ילדים ב׳, בוגרים, שני-רביעי':'e.g. Kids, Adults, Mon–Wed',
+'כולל הנוכחות שלהם. אי אפשר לבטל.':'Including their attendance. This cannot be undone.',
+'באייפון ההתקנה נעשית מתוך ספארי':'On iPhone, install from Safari',
+'דלג על הפרצוף הזה':'Skip this face','בטל דילוג':'Undo skip',
+'ותרשום נוכחות לפי זמן הצילום':'and attendance is logged by the photo time',
+'לא מזוהים — הקישו כדי לתת שם':'unrecognized — tap to name',
+'לפי התמונה שבכרטיס של כל אחד':'from each person’s card photo',
+'אין מפגשים שמתאימים לסינון':'No sessions match the filter',
+'בחרו מה לייצא ובאיזה פורמט':'Choose what to export and in which format',
+'השדה יופיע בכרטיס של כולם':'The field will appear on everyone’s card',
+'למשל: טלפון, חגורה, הערות':'e.g. Phone, Belt, Notes',
+'בוחרים "הוספה למסך הבית"':'Choose "Add to Home Screen"',
+'לא ניתן לטעון את יוצר ה-PDF — בדקו חיבור':'Could not load the PDF maker — check your connection',
+'לא ניתן לפתוח את התמונה':'Could not open the photo',
+'לא נמצאו פרצופים בתמונה':'No faces found in the photo',
+'או שזה מישהו שכבר קיים':'or someone already registered',
+'אין נוכחויות בטווח הזה':'No attendance in this range',
+'לוחצים על כפתור השיתוף':'Tap the Share button',
+'לבנות את הזיהוי מחדש?':'Rebuild recognition?',
+'נוכחות לפי זיהוי פנים':'attendance by face recognition',
+'תימחק. האנשים נשארים.':'will be deleted. People stay.',
+'יש כבר קבוצה בשם הזה':'A group with this name already exists',
+'✓ כל היום':'✓ Whole day','בחירת היום':'Select day',
+'הקישו לשיוך / ביטול':'Tap to add / remove',
+'הקלידו "מחק" לאישור':'Type "delete" to confirm',
+'ייצוא נוכחות — אקסל / PDF':'Export attendance — Excel / PDF',
+'לפי תמונה אחת ברורה':'from one clear photo',
+'מכין את מנוע הזיהוי':'Preparing the recognition engine',
+'מנוע הזיהוי לא נטען':'Recognition engine not loaded',
+'שינויים מוגנים בקוד':'Changes are code-protected',
+'גיבוי — הורדת קובץ':'Backup — download file',
+'הזיהוי נבנה מחדש ל-':'Recognition rebuilt for ',
+'להציג גם היעדרויות':'Show absences too',
+'קובץ גיבוי לא תקין':'Invalid backup file',
+'קורס, סדנה, אירוע…':'Course, workshop, event…',
+'בניית הזיהוי מחדש':'Rebuild recognition',
+'הזיהוי שלהם התחזק':'their recognition got stronger',
+'למחוק את המפגש של':'Delete the session of',
+'למחוק את הקבוצה':'Delete the group',
+'מאפס את הזיהוי של':'Resets recognition for',
+'שינוי תאריך / שעה':'Change date / time',
+'תמונה חדשה לזיהוי':'New recognition photo',
+'אין עדיין מפגשים':'No sessions yet',
+'אין עדיין נוכחות':'No attendance yet',
+'התקנה כאפליקציה':'Install as app',
+'מחיקת כל הנתונים':'Delete all data',
+'סה"כ נוכחים':'Total present',
+'זוהה בצילום הזה':'Recognized in this photo',
+'טוען מנוע זיהוי':'Loading recognition engine',
+'לא נכחו מהקבוצה':'Absent from the group',
+'משדרג את הזיהוי':'Upgrading recognition',
+'עדיין אין אנשים':'No people yet',
+'איחוד כפילויות':'Merge duplicates',
+'האחסון לא זמין':'Storage unavailable',
+'חיפוש לפי שם…':'Search by name…',
+'ללא פרצוף ברור':'without a clear face',
+'שנה (ספט׳–אוג׳)':'Year (Sep–Aug)',
+'בחרו מהרשימה…':'Choose from the list…',
+'הנוכחות נשמרה':'Attendance saved',
+'השדה כבר קיים':'Field already exists',
+'לוחצים "הוסף"':'Tap "Add"',
+'מפגשים נבחרים':'selected sessions',
+'רשומים פעמיים':'registered twice',
+'שם חדש לקבוצה':'New group name',
+'בתחתית ספארי':'at the bottom of Safari',
+'גיבוי-נוכחות':'attendance-backup',
+'הוספה לקבוצה':'Add to group',
+'המפגש נמחק':'Session deleted',
+'הקבוצה נמחקה':'Group deleted',
+'הקישור הועתק':'Link copied',
+'התאריך עודכן':'Date updated',
+'טווח תאריכים':'Date range',
+'כן, אותו אדם':'Yes, same person',
+'לאיזו קבוצה?':'Which group?',
+'מזהה פרצופים':'Detecting faces',
+'מחיקת הקבוצה':'Delete group',
+'מפגשים נמחקו':'sessions deleted',
+'נוכחים במפגש':'Present in session',
+'סיכום נוכחות':'Attendance summary',
+'רגישות זיהוי':'Recognition sensitivity',
+'שגיאה בשמירה':'Save error',
+'שחזור מגיבוי':'Restore from backup',
+'אנשים נבחרו':'people selected',
+'ייצוא המפגש':'Export session',
+'לא, אדם אחר':'No, someone else',
+'מחיקת המפגש':'Delete session',
+'4 ספרות לפחות':'At least 4 digits',
+'עם תמונות':'with photos',
+'עריכת קבוצה':'Edit group',
+'פתוח לעריכה':'Unlocked for editing',
+'שמירת תאריך':'Save date',
+'דוח נוכחות':'Attendance report',
+'הנוכחות של':'The attendance of',
+'הקוד עודכן':'Code updated',
+'זה הוא/היא ←':'That’s them →',
+'כל המפגשים':'All sessions',
+'כל הקבוצות':'All groups',
+'למחוק הכל?':'Delete everything?',
+'קבוצה חדשה':'New group',
+'שאר האנשים':'Other people',
+'שיוך אנשים':'Assign people',
+'בלי קבוצה':'No group',
+'הזינו קוד':'Enter code',
+'חודש קודם':'Last month',
+'כל האנשים':'Everyone',
+'לאחד':'Merge','כפילויות?':'duplicates?',
+'PDF נוכחות של':'Attendance PDF for','PDF נוכחות':'Attendance PDF',
+'שינוי קוד':'Change code',
+'הוסף שדה':'Add field',
+'הזינו שם':'Enter a name',
+'כבר רשום':'Already registered:',
+'למחוק את':'Delete',
+'נוכחויות · מתוך':'attendances out of','נוכחויות':'attendances',
+'עד תאריך':'To date',
+'שינוי שם':'Rename',
+'שם משפחה':'Last name',
+'או אקסל':'or Excel',
+'ייצוא ל-PDF':'Export PDF','ייצוא לאקסל':'Export to Excel',
+'הוצאו מ':'Removed from ',
+'מהגלריה':'From gallery',
+'מפגשים?':'sessions?',
+'נוספו ל':'Added to ',
+'קוד חדש':'New code',
+'רגישות:':'Sensitivity:',
+'שדה חדש':'New field',
+'שם פרטי':'First name',
+'תאריכים':'Dates',
+'אחרונה':'last',
+'אנשים?':'people?',
+'בקבוצה':'in group',
+'הגדרות':'Settings',
+'הוספה':'Add',
+'הותקנה':'installed',
+'חודשים':'months',
+'לא נכח':'Absent',
+'ללא שם':'No name',
+'לקבוצה':'To group',
+'מי זה?':'Who is this?',
+'מפגשים':'sessions',
+'מתאריך':'From date',
+'נוכחות':'Attendance',
+'נוכחים':'present',
+'עודכנו':'updated',
+'קבוצה:':'Group:',
+'קבוצות':'Groups',
+'רשומים':'registered',
+'שיתוף':'Share',
+'אוחדו':'merged',
+'איחוד':'Merge',
+'אישור':'OK',
+'אנשים':'People',
+'בחירה':'Select',
+'בחירת הכל':'Select all',
+'ביטול הכל':'Clear all',
+'ביטול':'Cancel',
+'הבנתי':'Got it',
+'הוצאה':'Remove',
+'החודש':'This month',
+'הסרה':'Remove',
+'התקנת':'Install',
+'זה לא':'Not',
+'ייצוא':'Export',
+'יצירת PDF':'Create PDF',
+'יצירת':'Create',
+'למחוק':'Delete',
+'מחיקה':'Delete',
+'מחמיר':'Strict',
+'מכין…':'Preparing…','מכין PDF…':'Preparing PDF…',
+'מכין':'Preparing',
+'מפגשי':'sessions of',
+'נבחרו':'selected',
+'נמחקו':'deleted',
+'נרשם:':'Logged:',
+'עריכה':'Edit',
+'פורמט':'Format',
+'צילום':'Camera',
+'קבוצה':'Group',
+'שוחזר':'Restored',
+'שמירה':'Save',
+'תאריך':'Date',
+'אקסל':'Excel',
+'כולם':'Everyone',
+'מתוך':'of',
+'נכחו':'Present',
+'נמחק':'Deleted',
+'ננעל':'Locked',
+'נשמר':'Saved',
+'סה"כ':'Total',
+'סיום':'Done',
+'עמוד':'Page',
+'רגיל':'Normal',
+'רגיש':'Sensitive',
+'שיוך':'Assign',
+'אין':'None',
+'הכל':'All',
+'יום':'Day',
+'מחק':'delete',
+'נכח':'Present',
+'שעה':'Time',
+'כן':'Yes','מחיקת':'Delete',
+'שם':'Name',
+'שויך ל':'Assigned to ','אחוז':'%','מנתח…':'Analyzing…','המפגש הזה':'This session','המפגשים האלה':'These sessions',
+'הזיהוי אופס':'Recognition reset','עודכן':'Updated','לא ניתן לנתח את התמונה':'Could not analyze the photo','לא נמצא פרצוף בתמונה':'No face found in the photo',
+'רגישות זיהוי':'Recognition sensitivity','גיבוי':'Backup','דולג':'Skipped','נעילה':'Lock'
+};
+let LANG='he';
+try{LANG=localStorage.getItem('po-lang')||((navigator.language||'').toLowerCase().startsWith('he')?'he':'en')}catch(e){}
+const LOC=()=>LANG==='en'?'en-GB':'he-IL';
+const TR_RE=new RegExp('(?<![\\u0590-\\u05FF])(?:'+Object.keys(TR_EN).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![\\u0590-\\u05FF])','g');
+function tr(s){return LANG==='en'&&s&&/[֐-׿]/.test(s)?s.replace(TR_RE,m=>TR_EN[m]):s}
+function trTree(root){
+  if(LANG!=='en'||!root)return;
+  if(root.nodeType===3){const v=tr(root.nodeValue);if(v!==root.nodeValue)root.nodeValue=v;return}
+  if(root.nodeType!==1)return;
+  if(/^(SCRIPT|STYLE|TEXTAREA)$/.test(root.tagName))return;
+  for(const a of ['placeholder','aria-label','title','alt']){const v=root.getAttribute&&root.getAttribute(a);if(v&&/[֐-׿]/.test(v)){const t=tr(v);if(t!==v)root.setAttribute(a,t)}}
+  for(const c of root.childNodes)trTree(c);
+}
+function applyLang(){
+  document.documentElement.lang=LANG==='en'?'en':'he';document.documentElement.dir=LANG==='en'?'ltr':'rtl';
+  const b=document.getElementById('langBtn');if(b)b.textContent=LANG==='en'?'עב':'EN';
+  if(LANG==='en'){trTree(document.body);
+    new MutationObserver(ms=>{for(const m of ms){if(m.type==='characterData')trTree(m.target);else if(m.type==='attributes')trTree(m.target);else m.addedNodes.forEach(trTree)}})
+      .observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title','alt']})}
+}
+function setLang(l){try{localStorage.setItem('po-lang',l)}catch(e){}S.lang=l;save().finally(()=>location.reload())}
+const fDate=ts=>new Date(ts).toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'numeric',year:'numeric'});
+const fShort=ts=>new Date(ts).toLocaleDateString(LOC(),{day:'2-digit',month:'2-digit',year:'2-digit'});
+const fTime=ts=>new Date(ts).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'});
 const dayKey=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const toLocalInput=ts=>{const d=new Date(ts);return new Date(ts-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
 
@@ -361,6 +603,7 @@ async function withCode(fn){
   const v=await dialog({title:'הזינו קוד',text:'שינויים מוגנים בקוד',type:'code',check:v=>v===S.code});
   if(v===null)return;unlocked=true;paintLock();touchLock();return fn();
 }
+$('#langBtn').onclick=()=>setLang(LANG==='en'?'he':'en');
 $('#lockBtn').onclick=()=>{if(unlocked){lock();toast('ננעל')}else withCode(()=>toast('פתוח לעריכה'))};
 
 /* ---------- face engine: two independent fingerprints must agree ---------- */
@@ -865,11 +1108,11 @@ function sessionSheet(sid,editDate=false){
       :`<div class="acts"><button class="btn sec" id="chD">שינוי תאריך / שעה</button></div>`}
     ${gchips}
     <div class="sub">נכחו <small>${pres.length}</small></div>
-    <div class="list">${pres.map(p=>`<div class="li"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a" data-rm="${p.id}" aria-label="הסרה">${X}</button></div>`).join('')||'<div class="li"><span class="d">אין</span></div>'}</div>
+    <div class="list">${pres.map(p=>`<div class="li"><img src="${p.photo}"><button class="n" style="text-align:start" data-p="${p.id}">${esc(fullName(p))}</button><button class="a" data-rm="${p.id}" aria-label="הסרה">${X}</button></div>`).join('')||'<div class="li"><span class="d">אין</span></div>'}</div>
     ${abs.length?`<div class="sub">לא נכחו מהקבוצה <small>${abs.length}</small></div>
-    <div class="list">${abs.map(p=>`<div class="li off"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a add" data-ad="${p.id}" aria-label="הוספה">${PLUS}</button></div>`).join('')}</div>`:''}
+    <div class="list">${abs.map(p=>`<div class="li off"><img src="${p.photo}"><button class="n" style="text-align:start" data-p="${p.id}">${esc(fullName(p))}</button><button class="a add" data-ad="${p.id}" aria-label="הוספה">${PLUS}</button></div>`).join('')}</div>`:''}
     ${others.length?`<div class="sub">שאר האנשים <small>${others.length}</small></div>
-    <div class="list">${others.map(p=>`<div class="li off"><img src="${p.photo}"><button class="n" style="text-align:right" data-p="${p.id}">${esc(fullName(p))}</button><button class="a add" data-ad="${p.id}" aria-label="הוספה">${PLUS}</button></div>`).join('')}</div>`:''}
+    <div class="list">${others.map(p=>`<div class="li off"><img src="${p.photo}"><button class="n" style="text-align:start" data-p="${p.id}">${esc(fullName(p))}</button><button class="a add" data-ad="${p.id}" aria-label="הוספה">${PLUS}</button></div>`).join('')}</div>`:''}
     <div class="acts" style="margin-top:18px"><button class="btn sec" id="exS">ייצוא המפגש</button><button class="btn dan" id="delS">מחיקת המפגש</button></div>`);
   $('#exS').onclick=()=>openExport({sids:[sid]});
   const B=$('#sheetBody');
@@ -923,17 +1166,17 @@ async function deliver(blob,name){
 }
 function exportExcel(o){
   const {ss,ppl}=exportSelection(o);
-  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const q=v=>'"'+String(tr(String(v??''))).replace(/"/g,'""')+'"';
   if(o.person&&ppl[0]){const p=ppl[0],n=ss.filter(s=>s.present.includes(p.id)).length;
     const rows=[[fullName(p)],[filterText(o,ss)],['נכח',n,'מתוך',ss.length,ss.length?Math.round(100*n/ss.length)+'%':''],[],['תאריך','יום','שעה','נוכחות'],
-      ...ss.map(s=>[fShort(s.ts),new Date(s.ts).toLocaleDateString('he-IL',{weekday:'long'}),fTime(s.ts),s.present.includes(p.id)?'V':''])];
-    deliver(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),'נוכחות-'+(p.first||'')+(p.last?'-'+p.last:'')+'.csv');return}
+      ...ss.map(s=>[fShort(s.ts),new Date(s.ts).toLocaleDateString(LOC(),{weekday:'long'}),fTime(s.ts),s.present.includes(p.id)?'V':''])];
+    deliver(new Blob([tr('\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n'))],{type:'text/csv;charset=utf-8'}),tr('נוכחות')+'-'+(p.first||'')+(p.last?'-'+p.last:'')+'.csv');return}
   const head=['שם פרטי','שם משפחה','קבוצות',...S.fields,'נוכחויות','אחוז',...ss.map(s=>fShort(s.ts)+' '+fTime(s.ts))];
   const rows=ppl.map(p=>{const m=ss.map(s=>s.present.includes(p.id)?'V':''),n=m.filter(Boolean).length;
     return [p.first,p.last,(p.groups||[]).map(G).filter(Boolean).map(g=>g.name).join(' / '),...S.fields.map(f=>(p.extra||{})[f]),n,ss.length?Math.round(100*n/ss.length)+'%':'',...m]});
   const tot=['','','סה"כ נוכחים',...S.fields.map(()=>''),'','',...ss.map(s=>s.present.filter(x=>ppl.some(p=>p.id===x)).length)];
   const csv='﻿'+[[filterText(o,ss)],[],head,...rows,tot].map(r=>r.map(q).join(',')).join('\r\n');
-  deliver(new Blob([csv],{type:'text/csv;charset=utf-8'}),'נוכחות-'+dayKey(Date.now())+'.csv');
+  deliver(new Blob([tr(csv)],{type:'text/csv;charset=utf-8'}),tr('נוכחות')+'-'+dayKey(Date.now())+'.csv');
 }
 async function exportPdf(o){
   const {ss,ppl}=exportSelection(o);
@@ -955,19 +1198,19 @@ async function exportPdf(o){
     const cols='1.2fr 1fr .7fr 1.1fr .8fr';
     const th=`<div class="pdfr th" style="grid-template-columns:${cols}"><div>תאריך</div><div>יום</div><div>שעה</div><div>קבוצה</div><div>נוכחות</div></div>`;
     add(th);
-    (o.withAbs===false?at:ss).forEach(s=>{const y=s.present.includes(p.id);add(`<div class="pdfr ${y?'yes':'no'}" style="grid-template-columns:${cols}"><div>${fShort(s.ts)}</div><div>${new Date(s.ts).toLocaleDateString('he-IL',{weekday:'long'})}</div><div>${fTime(s.ts)}</div><div>${s.group&&G(s.group)?esc(G(s.group).name):''}</div><div>${y?'<b class="bigv">✓</b>':'<span class="x">לא נכח</span>'}</div></div>`,th)});
+    (o.withAbs===false?at:ss).forEach(s=>{const y=s.present.includes(p.id);add(`<div class="pdfr ${y?'yes':'no'}" style="grid-template-columns:${cols}"><div>${fShort(s.ts)}</div><div>${new Date(s.ts).toLocaleDateString(LOC(),{weekday:'long'})}</div><div>${fTime(s.ts)}</div><div>${s.group&&G(s.group)?esc(G(s.group).name):''}</div><div>${y?'<b class="bigv">✓</b>':'<span class="x">לא נכח</span>'}</div></div>`,th)});
   }else if(ss.length===1){ // one session: photos of who came + who didn't
     const s=ss[0],pres=ppl.filter(p=>s.present.includes(p.id)),abs=ppl.filter(p=>!s.present.includes(p.id)),sg=s.group&&G(s.group);
     add(`<div class="pdft"><h1>${sg?esc(sg.name)+' · ':''}${fDate(s.ts)}</h1><span>${fTime(s.ts)} · נכחו ${pres.length}${abs.length?' מתוך '+(pres.length+abs.length):''}</span></div>`);
     if(s.photo)add(`<img class="pdfphoto" src="${s.photo}">`);
-    const cols='54px 1fr 90px',th=`<div class="pdfr th" style="grid-template-columns:${cols}"><div></div><div style="text-align:right">שם</div><div>נוכחות</div></div>`;
+    const cols='54px 1fr 90px',th=`<div class="pdfr th" style="grid-template-columns:${cols}"><div></div><div style="text-align:start">שם</div><div>נוכחות</div></div>`;
     add(th);
     [...pres,...abs].forEach(p=>{const y=s.present.includes(p.id);
       add(`<div class="pdfr ${y?'yes':'no'} big" style="grid-template-columns:${cols}"><div><img class="av" src="${p.photo}"></div><div class="nm2">${esc(fullName(p))}</div><div>${y?'<b class="bigv">✓</b>':'<span class="x">לא נכח</span>'}</div></div>`,th)});
   }else{ // several sessions: table
     const many=ss.length>12,cols=many?'1.8fr .8fr 1fr':`1.5fr repeat(${ss.length},minmax(0,1fr)) .6fr`;
     add(`<div class="pdft"><h1>סיכום נוכחות</h1><span>${ss.length} מפגשים · ${ppl.length} אנשים${ss.length?' · '+fShort(ss[0].ts)+' – '+fShort(ss[ss.length-1].ts):''}</span></div>`);
-    const th=`<div class="pdfr th" style="grid-template-columns:${cols}"><div>שם</div>${many?'<div>נוכחויות</div><div>אחרונה</div>':ss.map(s=>`<div>${new Date(s.ts).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}<small>${fTime(s.ts)}</small></div>`).join('')+'<div>סה"כ</div>'}</div>`;
+    const th=`<div class="pdfr th" style="grid-template-columns:${cols}"><div>שם</div>${many?'<div>נוכחויות</div><div>אחרונה</div>':ss.map(s=>`<div>${new Date(s.ts).toLocaleDateString(LOC(),{day:'numeric',month:'numeric'})}<small>${fTime(s.ts)}</small></div>`).join('')+'<div>סה"כ</div>'}</div>`;
     add(th);
     ppl.forEach(p=>{const at=ss.filter(s=>s.present.includes(p.id)),n=at.length;
       add(`<div class="pdfr grid ${many?(n?'yes':'no'):''}" style="grid-template-columns:${cols}"><div class="nm"><img src="${p.photo}">${esc(fullName(p))}</div>${many
@@ -982,7 +1225,7 @@ async function exportPdf(o){
     if(i)pdf.addPage();pdf.addImage(cv.toDataURL('image/jpeg',.9),'JPEG',0,0,210,297)}
   host.remove();
   const pp=o.person&&P(o.person);
-  await deliver(pdf.output('blob'),(pp?'נוכחות-'+(pp.first||'')+(pp.last?'-'+pp.last:''):ss.length===1?'נוכחות-'+dayKey(ss[0].ts):'נוכחות-'+dayKey(Date.now()))+'.pdf');
+  await deliver(pdf.output('blob'),(pp?tr('נוכחות')+'-'+(pp.first||'')+(pp.last?'-'+pp.last:''):ss.length===1?tr('נוכחות')+'-'+dayKey(ss[0].ts):tr('נוכחות')+'-'+dayKey(Date.now()))+'.pdf');
 }
 function personReport(id){
   const p=P(id);if(!p)return;
@@ -1000,7 +1243,7 @@ function personReport(id){
   const chip=(v,on,l)=>`<button class="gchip ${on?'on':''}" data-v="${v}">${l}</button>`;
   const draw=()=>{
     const {ss}=exportSelection(o),at=ss.filter(s=>s.present.includes(id)),n=at.length,show=o.withAbs?ss:at;
-    openSheet(`<div class="rephead"><img src="${p.photo}"><div><h2>${esc(fullName(p))}</h2><div class="meta" style="text-align:right;margin:2px 0 0">PDF נוכחות</div></div></div>
+    openSheet(`<div class="rephead"><img src="${p.photo}"><div><h2>${esc(fullName(p))}</h2><div class="meta" style="text-align:start;margin:2px 0 0">PDF נוכחות</div></div></div>
       ${S.groups.length?`<div class="sub">קבוצה</div><div class="gwrap" id="rpG">${chip('',!o.group,'כל הקבוצות')}${mine.map(g=>chip(g,o.group===g,esc(G(g).name))).join('')}</div>`:''}
       <div class="sub">תאריכים</div>
       <div class="gwrap" id="rpQ">${chip('m',qk==='m','החודש')}${chip('pm',qk==='pm','חודש קודם')}${chip('3',qk==='3','3 חודשים')}${chip('y',qk==='y','שנה (ספט׳–אוג׳)')}${chip('all',qk==='all','הכל')}</div>
@@ -1059,17 +1302,17 @@ $('#setBtn').onclick=()=>{
     dg.forEach(a=>{const [keep,...rest]=[...a].sort((x,y)=>(x.created||0)-(y.created||0));rest.forEach(d=>mergeInto(keep,d))});
     await save();closeSheet();renderAll();toast('אוחדו ✓ — הזיהוי שלהם התחזק')});
   $('#sRebuild').onclick=()=>withCode(async()=>{
-    const ok=await dialog({title:'לבנות את הזיהוי מחדש?',text:'כל אדם יזוהה מעכשיו לפי התמונה בכרטיס שלו. כדאי לוודא קודם שהתמונות נכונות. הקלידו "כן" לאישור',check:v=>v==='כן'});if(ok===null)return;
+    const ok=await dialog({title:'לבנות את הזיהוי מחדש?',text:'כל אדם יזוהה מעכשיו לפי התמונה בכרטיס שלו. כדאי לוודא קודם שהתמונות נכונות. הקלידו "כן" לאישור',check:v=>v==='כן'||v.toLowerCase()==='yes'});if(ok===null)return;
     try{await modelsReady}catch(e){toast('מנוע הזיהוי לא נטען');return}
     let good=0;const bad=[];
     for(const p of S.people){try{const x=largest(await analyze(await imgToCanvas(p.photo)));if(x&&x.hu){p.descriptors=[x.desc];p.hu=[x.hu];p.huV=HU_V;good++}else bad.push(fullName(p))}catch(e){bad.push(fullName(p))}}
     await save();closeSheet();renderAll();
     toast(bad.length?`${good} עודכנו · ${bad.length} ללא פרצוף ברור`:`הזיהוי נבנה מחדש ל-${good} ✓`)});
   $('#sCode').onclick=()=>withCode(async()=>{const n=await dialog({title:'קוד חדש',text:'4 ספרות לפחות',type:'text',check:v=>/^\d{4,}$/.test(v)});if(n){S.code=n;await save();toast('הקוד עודכן ✓')}});
-  $('#sExp').onclick=()=>download('גיבוי-נוכחות-'+dayKey(Date.now())+'.json',JSON.stringify(S),'application/json');
+  $('#sExp').onclick=()=>download(tr('גיבוי-נוכחות')+'-'+dayKey(Date.now())+'.json',JSON.stringify(S),'application/json');
   $('#sImp').onclick=()=>withCode(()=>$('#fImp').click());
   $('#sCsv').onclick=()=>openExport();
-  $('#sWipe').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק הכל?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'});if(ok===null)return;
+  $('#sWipe').onclick=()=>withCode(async()=>{const ok=await dialog({title:'למחוק הכל?',text:'הקלידו "מחק" לאישור',check:v=>v==='מחק'||v.toLowerCase()==='delete'});if(ok===null)return;
     S={people:[],fields:[],sessions:[],groups:[],code:S.code};curGroup='';sesG='';cur=null;await save();closeSheet();renderAll();toast('נמחק')});
 };
 $('#fImp').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
@@ -1126,7 +1369,7 @@ $('#instBtn').onclick=async()=>{
     <div style="margin-top:18px"><button class="btn pri full" onclick="closeSheet()">הבנתי</button></div>`);
 };
 $('#shareBtn').onclick=async()=>{
-  const data={title:'PO',text:'PO — נוכחות לפי זיהוי פנים',url:location.href.split('#')[0]};
+  const data={title:'PO',text:tr('PO — נוכחות לפי זיהוי פנים'),url:location.href.split('#')[0]};
   if(navigator.share){try{await navigator.share(data)}catch(e){}return}
   try{await navigator.clipboard.writeText(data.url);toast('הקישור הועתק')}catch(e){toast(data.url)}
 };
@@ -1134,7 +1377,7 @@ if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWor
 
 /* ---------- boot ---------- */
 (async()=>{
-  paintLock();
+  applyLang();paintLock();
   let ui=null;
   try{await idb.open();const st=await idb.get('state');if(st)S={...S,...st};ui=await idb.get('ui')}catch(e){toast('האחסון לא זמין')}
   migrate();
