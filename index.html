@@ -666,11 +666,12 @@ function personSheet(id,edit=false,fi=null){
   const rows=[['שם פרטי',p.first],['שם משפחה',p.last],...S.fields.map(f=>[f,(p.extra||{})[f]])];
   openSheet(`<img class="pp" src="${p.photo}"><h2>${esc(fullName(p))}</h2>
     <div class="meta">${att.length} נוכחויות${att.length?' · אחרונה '+fShort(att[0].ts):''}</div>
+    ${edit?'':`<button class="btn pri full" id="rep" style="margin:0 0 12px">PDF נוכחות של ${esc(p.first||fullName(p))}</button>`}
     ${fi!==null&&cur&&cur.faces[fi]&&cur.faces[fi].pid===id?`<div class="sugg"><img src="${cur.faces[fi].crop}"><span class="n">זוהה בצילום הזה</span><button class="btn sec" id="notMe" style="color:var(--danger)">זה לא ${esc(p.first||fullName(p))}</button></div>`:''}
     ${edit?fieldInputs(p):`<div class="fl">${rows.map(([l,v])=>`<div class="fr"><label>${esc(l)}</label><div class="v">${esc(v)||'<span style="color:#c3d3df">—</span>'}</div></div>`).join('')}</div>`}
     <div class="acts">${edit
       ?`<button class="btn ghost" id="af">+ הוסף שדה</button><button class="btn pri" id="sv">שמירה</button>`
-      :`<button class="btn sec" id="ed">עריכה</button><button class="btn sec" id="rep">דוח אישי</button><button class="btn ghost" id="af">+ הוסף שדה</button>`}</div>
+      :`<button class="btn sec" id="ed">עריכה</button><button class="btn ghost" id="af">+ הוסף שדה</button>`}</div>
     <div class="sub">קבוצות <small>הקישו לשיוך / ביטול</small></div>
     <div class="gwrap" id="pg">${S.groups.map(g=>`<button class="gchip ${(p.groups||[]).includes(g.id)?'on':''}" data-g="${g.id}">${esc(g.name)}</button>`).join('')}<button class="gchip add" id="pgAdd">+ קבוצה</button></div>
     <div class="sub">נוכחות <small>${att.length}</small></div>
@@ -950,11 +951,11 @@ async function exportPdf(o){
     const p=ppl[0],at=ss.filter(s=>s.present.includes(p.id)),n=at.length,pc=ss.length?Math.round(100*n/ss.length):0;
     const info=[...(p.groups||[]).map(G).filter(Boolean).map(g=>['קבוצה',g.name]),...S.fields.map(f=>[f,(p.extra||{})[f]]).filter(x=>x[1])];
     add(`<div class="pdfper"><img src="${p.photo}"><div><h1>${esc(fullName(p))}</h1>${info.map(([k,v])=>`<div><span>${esc(k)}</span> ${esc(v)}</div>`).join('')}</div>
-      <div class="pdfstat"><b>${n}</b><span>מתוך ${ss.length} מפגשים</span></div></div>`);
+      <div class="pdfstat"><b>${n}</b><span>נוכחויות${o.withAbs?' מתוך '+ss.length:''}</span></div></div>`);
     const cols='1.2fr 1fr .7fr 1.1fr .8fr';
     const th=`<div class="pdfr th" style="grid-template-columns:${cols}"><div>תאריך</div><div>יום</div><div>שעה</div><div>קבוצה</div><div>נוכחות</div></div>`;
     add(th);
-    ss.forEach(s=>{const y=s.present.includes(p.id);add(`<div class="pdfr ${y?'yes':'no'}" style="grid-template-columns:${cols}"><div>${fShort(s.ts)}</div><div>${new Date(s.ts).toLocaleDateString('he-IL',{weekday:'long'})}</div><div>${fTime(s.ts)}</div><div>${s.group&&G(s.group)?esc(G(s.group).name):''}</div><div>${y?'<b class="bigv">✓</b>':'<span class="x">לא נכח</span>'}</div></div>`,th)});
+    (o.withAbs===false?at:ss).forEach(s=>{const y=s.present.includes(p.id);add(`<div class="pdfr ${y?'yes':'no'}" style="grid-template-columns:${cols}"><div>${fShort(s.ts)}</div><div>${new Date(s.ts).toLocaleDateString('he-IL',{weekday:'long'})}</div><div>${fTime(s.ts)}</div><div>${s.group&&G(s.group)?esc(G(s.group).name):''}</div><div>${y?'<b class="bigv">✓</b>':'<span class="x">לא נכח</span>'}</div></div>`,th)});
   }else if(ss.length===1){ // one session: photos of who came + who didn't
     const s=ss[0],pres=ppl.filter(p=>s.present.includes(p.id)),abs=ppl.filter(p=>!s.present.includes(p.id)),sg=s.group&&G(s.group);
     add(`<div class="pdft"><h1>${sg?esc(sg.name)+' · ':''}${fDate(s.ts)}</h1><span>${fTime(s.ts)} · נכחו ${pres.length}${abs.length?' מתוך '+(pres.length+abs.length):''}</span></div>`);
@@ -986,10 +987,11 @@ async function exportPdf(o){
 function personReport(id){
   const p=P(id);if(!p)return;
   const mine=(p.groups||[]).filter(g=>G(g));
-  const o={person:id,mode:'range',sids:[],group:mine.length===1?mine[0]:'',from:'',to:'',fmt:'pdf'};
+  const o={person:id,mode:'range',sids:[],group:mine.length===1?mine[0]:'',from:'',to:'',fmt:'pdf',withAbs:false};
   const all=[...S.sessions].sort((a,b)=>a.ts-b.ts);
   if(all.length){o.from=dayKey(all[0].ts);o.to=dayKey(all[all.length-1].ts)}
-  const quick=k=>{const d=new Date(),y=d.getFullYear(),m=d.getMonth();const f=x=>dayKey(x.getTime());
+  let qk='all';
+  const quick=k=>{qk=k;const d=new Date(),y=d.getFullYear(),m=d.getMonth();const f=x=>dayKey(x.getTime());
     if(k==='m'){o.from=f(new Date(y,m,1));o.to=f(new Date(y,m+1,0))}
     if(k==='pm'){o.from=f(new Date(y,m-1,1));o.to=f(new Date(y,m,0))}
     if(k==='3'){o.from=f(new Date(y,m-2,1));o.to=f(new Date(y,m+1,0))}
@@ -997,18 +999,22 @@ function personReport(id){
     if(k==='all'&&all.length){o.from=dayKey(all[0].ts);o.to=dayKey(all[all.length-1].ts)}};
   const chip=(v,on,l)=>`<button class="gchip ${on?'on':''}" data-v="${v}">${l}</button>`;
   const draw=()=>{
-    const {ss}=exportSelection(o),n=ss.filter(s=>s.present.includes(id)).length,pc=ss.length?Math.round(100*n/ss.length):0;
-    openSheet(`<div class="rephead"><img src="${p.photo}"><div><h2>${esc(fullName(p))}</h2><div class="meta" style="text-align:right;margin:2px 0 0">דוח נוכחות אישי</div></div></div>
-      <div class="gwrap" id="rpQ">${chip('m',0,'החודש')}${chip('pm',0,'חודש קודם')}${chip('3',0,'3 חודשים')}${chip('y',0,'שנה (ספט׳–אוג׳)')}${chip('all',0,'הכל')}</div>
+    const {ss}=exportSelection(o),at=ss.filter(s=>s.present.includes(id)),n=at.length,show=o.withAbs?ss:at;
+    openSheet(`<div class="rephead"><img src="${p.photo}"><div><h2>${esc(fullName(p))}</h2><div class="meta" style="text-align:right;margin:2px 0 0">PDF נוכחות</div></div></div>
+      ${S.groups.length?`<div class="sub">קבוצה</div><div class="gwrap" id="rpG">${chip('',!o.group,'כל הקבוצות')}${mine.map(g=>chip(g,o.group===g,esc(G(g).name))).join('')}</div>`:''}
+      <div class="sub">תאריכים</div>
+      <div class="gwrap" id="rpQ">${chip('m',qk==='m','החודש')}${chip('pm',qk==='pm','חודש קודם')}${chip('3',qk==='3','3 חודשים')}${chip('y',qk==='y','שנה (ספט׳–אוג׳)')}${chip('all',qk==='all','הכל')}</div>
       <div class="fl" style="margin-top:10px"><div class="fr"><label>מתאריך</label><input type="date" id="rpF" value="${o.from}"></div><div class="fr"><label>עד תאריך</label><input type="date" id="rpT" value="${o.to}"></div></div>
-      ${S.groups.length?`<div class="sub">מתוך</div><div class="gwrap" id="rpG">${chip('',!o.group,'כל המפגשים')}${mine.map(g=>chip(g,o.group===g,'מפגשי '+esc(G(g).name))).join('')}</div>`:''}
-      <div class="repstat"><b>${n}</b><span>נוכחויות מתוך ${ss.length} מפגשים</span><i>${ss.length?pc+'%':'—'}</i></div>
-      ${ss.length?`<div class="list">${[...ss].reverse().map(s=>{const y=s.present.includes(id);return `<div class="li ${y?'':'off'}"><span class="n">${fDate(s.ts)}</span><span class="d">${fTime(s.ts)}</span><span class="d" style="width:44px;text-align:center;${y?'color:var(--blue);font-weight:600':''}">${y?'✓':'—'}</span></div>`}).join('')}</div>`:'<div class="empty" style="padding:16px">אין מפגשים בטווח הזה</div>'}
-      <div class="acts" style="margin-top:16px"><button class="btn pri" id="rpPdf" ${ss.length?'':'disabled'}>PDF</button><button class="btn sec" id="rpXls" ${ss.length?'':'disabled'}>אקסל</button></div>`);
+      <div class="repstat"><b>${n}</b><span>נוכחויות${ss.length?' · מתוך '+ss.length+' מפגשים':''}</span></div>
+      ${show.length?`<div class="list">${[...show].reverse().map(s=>{const y=s.present.includes(id);return `<div class="li ${y?'':'off'}"><span class="n">${fDate(s.ts)}</span><span class="d">${s.group&&G(s.group)?esc(G(s.group).name)+' · ':''}${fTime(s.ts)}</span><span class="d" style="width:34px;text-align:center;${y?'color:var(--blue);font-weight:700;font-size:17px':''}">${y?'✓':'—'}</span></div>`}).join('')}</div>`:'<div class="empty" style="padding:16px">אין נוכחויות בטווח הזה</div>'}
+      <div class="gwrap" style="margin-top:12px"><button class="gchip ${o.withAbs?'on':''}" id="rpAbs">${o.withAbs?'✓ ':''}להציג גם היעדרויות</button></div>
+      <button class="btn pri full" id="rpPdf" style="margin-top:14px" ${show.length?'':'disabled'}>יצירת PDF</button>
+      <div class="acts" style="margin-top:6px"><button class="btn ghost" id="rpXls" ${ss.length?'':'disabled'}>או אקסל</button></div>`);
     $('#rpQ').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{quick(b.dataset.v);draw()});
     if($('#rpG'))$('#rpG').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{o.group=b.dataset.v;draw()});
-    $('#rpF').onchange=e=>{o.from=e.target.value;draw()};$('#rpT').onchange=e=>{o.to=e.target.value;draw()};
-    $('#rpPdf').onclick=async()=>{const b=$('#rpPdf');b.disabled=true;b.textContent='מכין…';await exportPdf(o);b.disabled=false;b.textContent='PDF'};
+    $('#rpF').onchange=e=>{o.from=e.target.value;qk='';draw()};$('#rpT').onchange=e=>{o.to=e.target.value;qk='';draw()};
+    $('#rpAbs').onclick=()=>{o.withAbs=!o.withAbs;draw()};
+    $('#rpPdf').onclick=async()=>{const b=$('#rpPdf');b.disabled=true;b.textContent='מכין…';await exportPdf(o);b.disabled=false;b.textContent='יצירת PDF'};
     $('#rpXls').onclick=()=>exportExcel(o);
   };
   draw();
