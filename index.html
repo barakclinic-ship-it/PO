@@ -836,7 +836,7 @@ async function handleFile(file){
   const ts=(file.lastModified&&file.lastModified<=Date.now()+60000)?file.lastModified:Date.now();
   const gid=pendingGroup&&G(pendingGroup)?pendingGroup:'';pendingGroup='';
   const ses={id:uid(),ts,present:[],group:gid,photo:sessionPhoto(hi)};
-  faces.forEach(f=>{if(f.pid){const p=P(f.pid);ses.present.push(f.pid);if(gid&&!inGroup(p,gid))toggleMember(p,gid);f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f);setPhoto(p,f.crop,ts)}});
+  faces.forEach(f=>{if(f.pid){const p=P(f.pid);ses.present.push(f.pid);if(gid&&!inGroup(p,gid)){toggleMember(p,gid);f.addedG=[gid]}f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f);setPhoto(p,f.crop,ts)}});
   S.sessions.push(ses);await save();
   cur={sid:ses.id,faces};renderCapture();renderAtt();renderPeople();
 }
@@ -936,7 +936,7 @@ function nameSheet(i){
       box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>assignTo(P(b.dataset.id)))};
     $('#ff').querySelectorAll('input[data-k]').forEach(i=>i.addEventListener('input',ac));if(vals)ac();
     const assignTo=async p=>{if(!p)return;f.prev={photo:p.photo,ts:p.photoTs};f.learned=learn(p,f,true);setPhoto(p,f.crop,ses.ts);
-      if(!ses.present.includes(p.id))ses.present.push(p.id);gsel.forEach(g=>{if(!inGroup(p,g))toggleMember(p,g)});
+      if(!ses.present.includes(p.id))ses.present.push(p.id);gsel.forEach(g=>{if(!inGroup(p,g)){toggleMember(p,g);(f.addedG=f.addedG||[]).push(g)}});
       f.pid=p.id;f.skip=false;await save();closeSheet();renderAll();toast('נרשם: '+fullName(p)+' ✓')};
     $('#ng').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const g=b.dataset.g;gsel.has(g)?gsel.delete(g):gsel.add(g);b.classList.toggle('on')});
     $('#ngAdd').onclick=async()=>{const v=readInputs();const g=await newGroup();if(g){gsel.add(g.id);draw(v)}};
@@ -944,7 +944,7 @@ function nameSheet(i){
       const same=S.people.find(x=>norm(fullName(x))===norm([v.first,v.last].filter(Boolean).join(' '))&&!(f.no||[]).includes(x.id));
       if(same){const yes=await dialog({type:'confirm',title:'כבר רשום '+fullName(same),text:'זה אותו אדם? אם כן, התמונה תצטרף אליו והזיהוי שלו יתחזק.',okText:'כן, אותו אדם',noText:'לא, אדם אחר'});
         if(yes){f.prev={photo:same.photo,ts:same.photoTs};f.learned=learn(same,f,true);setPhoto(same,f.crop,ses.ts);
-          if(!ses.present.includes(same.id))ses.present.push(same.id);gsel.forEach(g=>{if(!inGroup(same,g))toggleMember(same,g)});
+          if(!ses.present.includes(same.id))ses.present.push(same.id);gsel.forEach(g=>{if(!inGroup(same,g)){toggleMember(same,g);(f.addedG=f.addedG||[]).push(g)}});
           f.pid=same.id;f.skip=false;await save();closeSheet();renderAll();toast('נרשם: '+fullName(same)+' ✓');return}}
       const p={id:uid(),first:v.first,last:v.last,extra:v.extra,groups:[...gsel],photo:f.crop,photoTs:ses.ts,descriptors:[f.desc],hu:f.hu?[f.hu]:[],huV:HU_V,created:Date.now()};
       S.people.push(p);ses.present.push(p.id);f.pid=p.id;f.skip=false;await save();closeSheet();renderAll();toast('נשמר ✓')};
@@ -1050,7 +1050,10 @@ async function undoMatch(fi){
   const f=cur.faces[fi],ses=SES(cur.sid),p=f&&P(f.pid);if(!p||!ses)return;
   if(f.learned){unlearn(p,f);if(!p.descriptors.length){p.descriptors=[f.desc];p.hu=f.hu?[f.hu]:[]}}
   if(f.prev&&p.photo===f.crop){p.photo=f.prev.photo;p.photoTs=f.prev.ts}
-  if(!cur.faces.some((x,i)=>i!==fi&&x.pid===p.id))ses.present=ses.present.filter(x=>x!==p.id);
+  if(!cur.faces.some((x,i)=>i!==fi&&x.pid===p.id)){ses.present=ses.present.filter(x=>x!==p.id);
+    // the wrong match had also put them in this photo's group — take that back too (unless they really attended that group another time)
+    (f.addedG||[]).forEach(g=>{if(inGroup(p,g)&&!S.sessions.some(s=>s.id!==ses.id&&s.group===g&&s.present.includes(p.id)))toggleMember(p,g)})}
+  f.addedG=null;
   (f.no=f.no||[]).push(p.id);f.pid=null;f.learned=false;
   await save();closeSheet();renderAll();setTimeout(()=>nameSheet(fi),320);
 }
