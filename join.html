@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="robots" content="noindex">
+<title>PO</title>
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ffffff;--soft:#f3faff;--sky:#e3f3fd;--line:#e4eef6;--blue:#2aa7e8;--blue-d:#1287c7;--ink:#12304a;--mute:#7b93a6;--danger:#e25c5c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px 16px 40px}
+header{display:flex;align-items:center;gap:10px;padding:4px 0 14px;border-bottom:1px solid var(--line);margin-bottom:18px}
+header img{width:40px;height:40px}
+header b{font-size:22px;letter-spacing:.5px;display:block;line-height:1}
+header small{color:var(--mute);font-size:12px}
+h1{font-size:20px;margin:0 0 4px;font-weight:700}
+.meta{color:var(--mute);font-size:14px;margin-bottom:16px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.grid button{border:1px solid var(--line);background:var(--soft);border-radius:16px;padding:0;overflow:hidden;cursor:pointer;aspect-ratio:3/4}
+.grid img{width:100%;height:100%;object-fit:cover;display:block}
+.grid button:active{transform:scale(.97)}
+.pp{display:block;width:150px;height:200px;object-fit:cover;border-radius:18px;margin:4px auto 16px;border:1px solid var(--line)}
+.fl{border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:14px}
+.fr{display:flex;align-items:center;border-bottom:1px solid var(--line);padding:4px 14px}
+.fr:last-child{border-bottom:0}
+.fr label{width:96px;color:var(--mute);font-size:14px;flex:none}
+.fr input{flex:1;border:0;outline:0;font:inherit;font-size:16px;padding:12px 0;background:transparent;color:var(--ink);min-width:0}
+.ck{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5;margin:6px 2px 16px;cursor:pointer}
+.ck input{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--blue)}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:14px;font:inherit;font-size:16px;font-weight:500;cursor:pointer}
+.pri{background:var(--blue);color:#fff}.pri:disabled{opacity:.6}
+.sec{background:#fff;color:var(--ink);border:1px solid var(--line);margin-top:10px}
+.ok{font-size:56px;text-align:center;color:var(--blue);margin:30px 0 6px}
+.center{text-align:center}
+.priv{color:var(--mute);font-size:12px;text-align:center;margin-top:22px;line-height:1.5}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:12px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;max-width:90%}
+.toast.on{opacity:1}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid var(--sky);border-top-color:var(--blue);border-radius:50%;animation:s 1s linear infinite;vertical-align:middle}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<main>
+  <header><img src="logo.png" alt=""><div><b>PO</b><small id="hsub"></small></div></header>
+  <div id="app" class="center" style="padding:40px 0"><span class="spin"></span></div>
+  <p class="priv" id="priv"></p>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const T={
+he:{sub:'רישום לנוכחות',pick:'מצאו את עצמכם בתמונה ולחצו על הפרצוף שלכם',first:'שם פרטי',last:'שם משפחה',consent:'אני מאשר/ת שתמונת הפנים שלי תשמש את המדריך לרישום נוכחות. מתחת לגיל 18 — הורה ממלא ומאשר.',send:'שליחה',notme:'זה לא אני',thanks:'תודה! נרשמת',thanksSub:'הפרטים הגיעו למדריך',another:'לרשום עוד מישהו מהתמונה',expired:'הקישור כבר לא פעיל',taken:'מישהו כבר נרשם עם הפרצוף הזה',err:'משהו השתבש — נסו שוב',needName:'נא למלא שם',needConsent:'נא לאשר את השימוש בתמונה',none:'כל מי שבתמונה כבר נרשם',bad:'הקישור לא תקין',priv:'הפרטים נשלחים רק למדריך. התמונות נמחקות מהקישור כשהוא פג.'},
+en:{sub:'Attendance sign-up',pick:'Find yourself in the photo and tap your face',first:'First name',last:'Last name',consent:'I agree that my face photo may be used by the instructor to take attendance. Under 18 — a parent fills this in and agrees.',send:'Send',notme:'That’s not me',thanks:'Thanks! You’re signed up',thanksSub:'Your details reached the instructor',another:'Sign up someone else from the photo',expired:'This link is no longer active',taken:'Someone has already signed up with this face',err:'Something went wrong — please try again',needName:'Please enter a name',needConsent:'Please agree to the use of the photo',none:'Everyone in the photo has signed up',bad:'This link is invalid',priv:'Your details go only to the instructor. The photos are deleted from the link when it expires.'},
+ar:{sub:'التسجيل للحضور',pick:'ابحث عن نفسك في الصورة واضغط على وجهك',first:'الاسم الأول',last:'اسم العائلة',consent:'أوافق على أن يستخدم المدرب صورة وجهي لتسجيل الحضور. لمن هم دون 18 عامًا — يملأ ولي الأمر ويوافق.',send:'إرسال',notme:'هذا ليس أنا',thanks:'شكرًا! تم تسجيلك',thanksSub:'وصلت بياناتك إلى المدرب',another:'تسجيل شخص آخر من الصورة',expired:'هذا الرابط لم يعد فعالًا',taken:'سجّل شخص آخر بهذا الوجه بالفعل',err:'حدث خطأ — حاول مرة أخرى',needName:'يرجى إدخال الاسم',needConsent:'يرجى الموافقة على استخدام الصورة',none:'كل من في الصورة سجّل بالفعل',bad:'الرابط غير صالح',priv:'تُرسل بياناتك إلى المدرب فقط. تُحذف الصور من الرابط عند انتهاء صلاحيته.'},
+ru:{sub:'Регистрация посещаемости',pick:'Найдите себя на фото и нажмите на своё лицо',first:'Имя',last:'Фамилия',consent:'Я согласен(на), что инструктор может использовать фото моего лица для учёта посещаемости. Младше 18 лет — заполняет и даёт согласие родитель.',send:'Отправить',notme:'Это не я',thanks:'Спасибо! Вы зарегистрированы',thanksSub:'Ваши данные получены инструктором',another:'Зарегистрировать ещё кого-то с фото',expired:'Ссылка больше не действует',taken:'С этим лицом уже кто-то зарегистрировался',err:'Что-то пошло не так — попробуйте ещё раз',needName:'Введите имя',needConsent:'Подтвердите согласие на использование фото',none:'Все с фото уже зарегистрировались',bad:'Ссылка недействительна',priv:'Данные получает только инструктор. Фото удаляются, когда срок ссылки истекает.'},
+es:{sub:'Registro de asistencia',pick:'Búscate en la foto y toca tu cara',first:'Nombre',last:'Apellido',consent:'Acepto que el instructor use la foto de mi cara para registrar la asistencia. Menores de 18: lo completa y acepta un padre o madre.',send:'Enviar',notme:'No soy yo',thanks:'¡Gracias! Ya estás registrado/a',thanksSub:'Tus datos llegaron al instructor',another:'Registrar a otra persona de la foto',expired:'Este enlace ya no está activo',taken:'Alguien ya se registró con esta cara',err:'Algo salió mal; inténtalo de nuevo',needName:'Escribe un nombre',needConsent:'Acepta el uso de la foto',none:'Todos los de la foto ya se registraron',bad:'El enlace no es válido',priv:'Tus datos solo llegan al instructor. Las fotos se borran del enlace cuando caduca.'},
+fr:{sub:'Inscription aux présences',pick:'Trouvez-vous sur la photo et touchez votre visage',first:'Prénom',last:'Nom',consent:'J’accepte que l’instructeur utilise la photo de mon visage pour noter les présences. Moins de 18 ans : un parent remplit et accepte.',send:'Envoyer',notme:'Ce n’est pas moi',thanks:'Merci ! Vous êtes inscrit(e)',thanksSub:'Vos informations sont parvenues à l’instructeur',another:'Inscrire quelqu’un d’autre de la photo',expired:'Ce lien n’est plus actif',taken:'Quelqu’un s’est déjà inscrit avec ce visage',err:'Un problème est survenu — réessayez',needName:'Veuillez saisir un nom',needConsent:'Veuillez accepter l’utilisation de la photo',none:'Tout le monde sur la photo s’est inscrit',bad:'Ce lien n’est pas valide',priv:'Vos informations ne vont qu’à l’instructeur. Les photos sont supprimées du lien à son expiration.'},
+de:{sub:'Anmeldung zur Anwesenheit',pick:'Finde dich auf dem Foto und tippe auf dein Gesicht',first:'Vorname',last:'Nachname',consent:'Ich bin einverstanden, dass der Trainer mein Gesichtsfoto zur Anwesenheitserfassung nutzt. Unter 18 – ein Elternteil füllt aus und stimmt zu.',send:'Senden',notme:'Das bin ich nicht',thanks:'Danke! Du bist angemeldet',thanksSub:'Deine Angaben sind beim Trainer angekommen',another:'Noch jemanden vom Foto anmelden',expired:'Dieser Link ist nicht mehr aktiv',taken:'Mit diesem Gesicht hat sich schon jemand angemeldet',err:'Etwas ist schiefgelaufen – bitte erneut versuchen',needName:'Bitte einen Namen eingeben',needConsent:'Bitte der Fotonutzung zustimmen',none:'Alle auf dem Foto sind angemeldet',bad:'Dieser Link ist ungültig',priv:'Deine Angaben gehen nur an den Trainer. Die Fotos werden gelöscht, wenn der Link abläuft.'},
+it:{sub:'Registrazione presenze',pick:'Trovati nella foto e tocca il tuo viso',first:'Nome',last:'Cognome',consent:'Accetto che l’istruttore usi la foto del mio viso per registrare le presenze. Sotto i 18 anni compila e accetta un genitore.',send:'Invia',notme:'Non sono io',thanks:'Grazie! Sei registrato/a',thanksSub:'I tuoi dati sono arrivati all’istruttore',another:'Registra un’altra persona della foto',expired:'Questo link non è più attivo',taken:'Qualcuno si è già registrato con questo viso',err:'Qualcosa è andato storto: riprova',needName:'Inserisci un nome',needConsent:'Accetta l’uso della foto',none:'Tutti nella foto si sono già registrati',bad:'Il link non è valido',priv:'I tuoi dati vanno solo all’istruttore. Le foto vengono eliminate dal link alla scadenza.'},
+pt:{sub:'Registro de presença',pick:'Encontre-se na foto e toque no seu rosto',first:'Nome',last:'Sobrenome',consent:'Concordo que o instrutor use a foto do meu rosto para registrar a presença. Menores de 18 anos: um responsável preenche e concorda.',send:'Enviar',notme:'Não sou eu',thanks:'Obrigado! Você está registrado(a)',thanksSub:'Seus dados chegaram ao instrutor',another:'Registrar outra pessoa da foto',expired:'Este link não está mais ativo',taken:'Alguém já se registrou com este rosto',err:'Algo deu errado — tente novamente',needName:'Informe um nome',needConsent:'Concorde com o uso da foto',none:'Todos da foto já se registraram',bad:'Este link é inválido',priv:'Seus dados vão só para o instrutor. As fotos são apagadas do link quando ele expira.'}
+};
+const Q=new URLSearchParams(location.search),K=Q.get('k')||'',TK=Q.get('t')||'';
+let L=(navigator.language||'').slice(0,2).toLowerCase();if(!T[L])L=T[Q.get('l')]?Q.get('l'):'he'; // the student's phone language first
+const t=k=>T[L][k]||T.en[k];
+document.documentElement.lang=L;document.documentElement.dir=(L==='he'||L==='ar')?'rtl':'ltr';
+document.getElementById('hsub').textContent=t('sub');document.getElementById('priv').textContent=t('priv');
+const app=document.getElementById('app'),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tt;function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),2600)}
+const API=/^[\w-]{20,120}$/.test(K)&&/^[A-Za-z0-9]{16,40}$/.test(TK)?'https://script.google.com/macros/s/'+K+'/exec':'';
+async function api(o){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...o,t:TK})});return r.json()}
+function msg(k,sub){app.className='center';app.style.padding='40px 0';app.innerHTML=`<h1>${esc(t(k))}</h1>${sub?`<div class="meta">${esc(sub)}</div>`:''}`}
+let INV=null;
+async function load(){
+  if(!API)return msg('bad');
+  app.className='center';app.innerHTML='<span class="spin"></span>';
+  try{INV=await api({a:'invite'})}catch(e){return msg('err')}
+  if(!INV.ok)return msg(INV.err==='expired'?'expired':'err');
+  if(!INV.faces.length)return msg('none',INV.meta.title);
+  app.className='';app.style.padding='0';
+  app.innerHTML=`<h1>${esc(INV.meta.title||t('sub'))}</h1><div class="meta">${esc(t('pick'))}</div>
+    <div class="grid">${INV.faces.map(f=>`<button data-i="${f.i}"><img src="${f.crop}" alt=""></button>`).join('')}</div>`;
+  app.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>form(INV.faces.find(f=>String(f.i)===b.dataset.i)));
+}
+function form(f){
+  scrollTo(0,0);
+  app.innerHTML=`<img class="pp" src="${f.crop}" alt="">
+    <div class="fl"><div class="fr"><label>${esc(t('first'))}</label><input id="f1" autocomplete="given-name"></div>
+    <div class="fr"><label>${esc(t('last'))}</label><input id="f2" autocomplete="family-name"></div>
+    ${(INV.meta.fields||[]).map((x,j)=>`<div class="fr"><label>${esc(x)}</label><input data-x="${j}"></div>`).join('')}</div>
+    <label class="ck"><input type="checkbox" id="ok"><span>${esc(t('consent'))}</span></label>
+    <button class="btn pri" id="go">${esc(t('send'))}</button><button class="btn sec" id="back">${esc(t('notme'))}</button>`;
+  document.getElementById('back').onclick=load;
+  document.getElementById('go').onclick=async e=>{
+    const first=document.getElementById('f1').value.trim(),last=document.getElementById('f2').value.trim();
+    if(!first&&!last)return toast(t('needName'));
+    if(!document.getElementById('ok').checked)return toast(t('needConsent'));
+    const extra={};app.querySelectorAll('[data-x]').forEach(i=>{if(i.value.trim())extra[INV.meta.fields[+i.dataset.x]]=i.value.trim()});
+    e.target.disabled=true;
+    let r;try{r=await api({a:'submit',i:f.i,first,last,extra,consent:true})}catch(x){r={ok:false}}
+    e.target.disabled=false;
+    if(!r.ok){if(r.err==='taken'){toast(t('taken'));return load()}if(r.err==='expired')return msg('expired');return toast(t('err'))}
+    app.className='center';app.innerHTML=`<div class="ok">✓</div><h1>${esc(t('thanks'))}</h1><div class="meta">${esc(t('thanksSub'))}</div><button class="btn sec" id="more">${esc(t('another'))}</button>`;
+    document.getElementById('more').onclick=load;
+  };
+}
+load();
+</script>
+</body>
+</html>
